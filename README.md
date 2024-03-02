@@ -15,26 +15,26 @@
 
 <p style="display: inline">
     <!-- Backend -->
-    <img src="https://img.shields.io/badge/-golang-#00ADD8.svg?logo=go">
+    <img src="https://img.shields.io/badge/-go-00ADD8.svg?logo=go&style=for-the-badge&logoColor=white">
     <!-- Middleware -->
-    <img src="https://img.shields.io/badge/-nginx-#009639.svg?logo=nginx">
-    <img src="https://img.shields.io/badge/-mysql-#4479A1.svg?logo=mysql">
-    <img src="https://img.shields.io/badge/-redis-#DC382D.svg?logo=redis">
-    <img src="https://img.shields.io/badge/-elasticsearch-#005571.svg?logo=elasticsearch">
+    <img src="https://img.shields.io/badge/-nginx-009639.svg?logo=nginx&style=for-the-badge">
+    <img src="https://img.shields.io/badge/-mysql-4479A1.svg?logo=mysql&style=for-the-badge&logoColor=white">
+    <img src="https://img.shields.io/badge/-redis-DC382D.svg?logo=redis&style=for-the-badge&logoColor=white">
+    <img src="https://img.shields.io/badge/-elasticsearch-005571.svg?logo=elasticsearch&style=for-the-badge">
     <!-- Saas -->
-    <img src="https://img.shields.io/badge/-stripe-#008CDD.svg?logo=stripe">
-    <img src="https://img.shields.io/badge/-clerk-#6C47FF.svg?logo=clerk">
-    <img src="https://img.shields.io/badge/-sentry-#362D59.svg?logo=sentry">
-    <img src="https://img.shields.io/badge/-novu-#000000.svg?logo=novu">
-    <img src="https://img.shields.io/badge/-planetscale-#000000.svg?logo=planetscale">
+    <img src="https://img.shields.io/badge/-stripe-008CDD.svg?logo=stripe&style=for-the-badge&logoColor=white">
+    <img src="https://img.shields.io/badge/-clerk-6C47FF.svg?logo=clerk&style=for-the-badge">
+    <img src="https://img.shields.io/badge/-sentry-362D59.svg?logo=sentry&style=for-the-badge">
+    <img src="https://img.shields.io/badge/-novu-000000.svg?logo=novu&style=for-the-badge">
+    <img src="https://img.shields.io/badge/-planetscale-000000.svg?logo=planetscale&style=for-the-badge">
     <!-- Infrastracture -->
-    <img src="https://img.shields.io/badge/-docker-#2496ED.svg?logo=docker">
-    <img src="https://img.shields.io/badge/-terraform-#844FBA.svg?logo=terraform">
-    <img src="https://img.shields.io/badge/-actions-#2088FF.svg?logo=githubactions">
-    <img src="https://img.shields.io/badge/-fargate-#FF9900.svg?logo=awsfargate">
-    <img src="https://img.shields.io/badge/-lambda-#FF9900.svg?logo=awslambda">
+    <img src="https://img.shields.io/badge/-Docker-1488C6.svg?logo=docker&style=for-the-badge">
+    <img src="https://img.shields.io/badge/-terraform-20232A?logo=terraform&style=for-the-badge">
+    <img src="https://img.shields.io/badge/-githubactions-2088FF.svg?logo=github-actions&style=for-the-badge&logoColor=white">
+    <img src="https://img.shields.io/badge/-awsfargate-232F3E.svg?logo=awsfargate&style=for-the-badge">
+    <img src="https://img.shields.io/badge/-awslambda-232F3E.svg?logo=awslambda&style=for-the-badge">
     <!-- Analytics -->
-    <img src="https://img.shields.io/badge/-analytics-#E37400.svg?logo=googleanalytics">
+    <img src="https://img.shields.io/badge/-googleanalytics-FFFFFF.svg?logo=googleanalytics&style=for-the-badge">
 </p>
 
 ### Backend
