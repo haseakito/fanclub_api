@@ -1,0 +1,67 @@
+version: '3.9'
+
+services:
+  app:
+    container_name: fanclub_api
+    build:
+      context: src
+      dockerfile: Dockerfile.dev
+    ports:
+      - 8080:8080
+    volumes:
+      - ./src:/go/src
+    depends_on:
+      - db
+      - storage
+    networks:
+      - fanclub
+
+  nginx:
+    container_name: fanclub_proxy
+    build:
+      context: nginx
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - app
+    networks:
+      - fanclub
+
+  db:
+    container_name: fanclub_db
+    image: mysql
+    ports:
+      - 3306:3306
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: mydb
+      MYSQL_USER: mysql
+      MYSQL_PASSWORD: mysql
+    volumes:
+      - db-data:/var/lib/mysql
+    networks:
+      - fanclub
+
+  storage:
+    container_name: fanclub_storage
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=minio
+      - MINIO_ROOT_PASSWORD=minio123
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address :9001
+    networks:
+      - fanclub
+
+networks:
+  fanclub:
+
+volumes:
+  db-data:
+  minio_data:
