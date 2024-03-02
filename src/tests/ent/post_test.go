@@ -84,6 +84,10 @@ func TestCreatePostWithCategory(t *testing.T) {
 		Only(ctx)
 	require.NoError(t, err)
 
+	// Commit the transaction
+	err = tx.Commit()
+	require.NoError(t, err)
+
 	// Assert that the fetched post contains the expected category
 	assert.NotNil(t, postWithCategories)
 
@@ -139,6 +143,10 @@ func TestCreatePostWithSubscription(t *testing.T) {
 		Where(post.ID(newPost.ID)).
 		WithSubscriptions().
 		Only(ctx)
+	require.NoError(t, err)
+
+	// Commit the transaction
+	err = tx.Commit()
 	require.NoError(t, err)
 
 	// Assert that the fetched post contains the expected subscription
