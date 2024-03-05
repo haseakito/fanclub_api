@@ -12,7 +12,7 @@ services:
       - ./src:/go/src
     depends_on:
       - db
-      - storage
+      - cache
     networks:
       - fanclub
 
@@ -44,24 +44,20 @@ services:
     networks:
       - fanclub
 
-  storage:
-    container_name: fanclub_storage
-    image: minio/minio:latest
+  cache:
+    image: redis
+    restart: always
     ports:
-      - "9000:9000"
-      - "9001:9001"
-    environment:
-      - MINIO_ROOT_USER=minio
-      - MINIO_ROOT_PASSWORD=minio123
+      - 6379:6379
     volumes:
-      - minio_data:/data
-    command: server /data --console-address :9001
+      - cache:/data
     networks:
       - fanclub
 
 networks:
   fanclub:
 
+
 volumes:
   db-data:
-  minio_data:
+  cache:
