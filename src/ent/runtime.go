@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/hackgame-org/fanclub_api/ent/asset"
+	"github.com/hackgame-org/fanclub_api/ent/billboard"
 	"github.com/hackgame-org/fanclub_api/ent/category"
 	"github.com/hackgame-org/fanclub_api/ent/post"
 	"github.com/hackgame-org/fanclub_api/ent/schema"
@@ -16,6 +18,38 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	assetFields := schema.Asset{}.Fields()
+	_ = assetFields
+	// assetDescCreatedAt is the schema descriptor for created_at field.
+	assetDescCreatedAt := assetFields[4].Descriptor()
+	// asset.DefaultCreatedAt holds the default value on creation for the created_at field.
+	asset.DefaultCreatedAt = assetDescCreatedAt.Default.(func() time.Time)
+	// assetDescUpdatedAt is the schema descriptor for updated_at field.
+	assetDescUpdatedAt := assetFields[5].Descriptor()
+	// asset.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	asset.DefaultUpdatedAt = assetDescUpdatedAt.Default.(func() time.Time)
+	// asset.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	asset.UpdateDefaultUpdatedAt = assetDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// assetDescID is the schema descriptor for id field.
+	assetDescID := assetFields[0].Descriptor()
+	// asset.DefaultID holds the default value on creation for the id field.
+	asset.DefaultID = assetDescID.Default.(func() uuid.UUID)
+	billboardFields := schema.Billboard{}.Fields()
+	_ = billboardFields
+	// billboardDescCreatedAt is the schema descriptor for created_at field.
+	billboardDescCreatedAt := billboardFields[3].Descriptor()
+	// billboard.DefaultCreatedAt holds the default value on creation for the created_at field.
+	billboard.DefaultCreatedAt = billboardDescCreatedAt.Default.(func() time.Time)
+	// billboardDescUpdatedAt is the schema descriptor for updated_at field.
+	billboardDescUpdatedAt := billboardFields[4].Descriptor()
+	// billboard.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	billboard.DefaultUpdatedAt = billboardDescUpdatedAt.Default.(func() time.Time)
+	// billboard.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	billboard.UpdateDefaultUpdatedAt = billboardDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// billboardDescID is the schema descriptor for id field.
+	billboardDescID := billboardFields[0].Descriptor()
+	// billboard.DefaultID holds the default value on creation for the id field.
+	billboard.DefaultID = billboardDescID.Default.(func() uuid.UUID)
 	categoryFields := schema.Category{}.Fields()
 	_ = categoryFields
 	// categoryDescCreatedAt is the schema descriptor for created_at field.

@@ -12,6 +12,8 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/hackgame-org/fanclub_api/ent/asset"
+	"github.com/hackgame-org/fanclub_api/ent/billboard"
 	"github.com/hackgame-org/fanclub_api/ent/category"
 	"github.com/hackgame-org/fanclub_api/ent/post"
 	"github.com/hackgame-org/fanclub_api/ent/subscription"
@@ -75,6 +77,8 @@ var (
 func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
+			asset.Table:        asset.ValidColumn,
+			billboard.Table:    billboard.ValidColumn,
 			category.Table:     category.ValidColumn,
 			post.Table:         post.ValidColumn,
 			subscription.Table: subscription.ValidColumn,

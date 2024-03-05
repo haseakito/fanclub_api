@@ -16,6 +16,8 @@ import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/hackgame-org/fanclub_api/ent/asset"
+	"github.com/hackgame-org/fanclub_api/ent/billboard"
 	"github.com/hackgame-org/fanclub_api/ent/category"
 	"github.com/hackgame-org/fanclub_api/ent/post"
 	"github.com/hackgame-org/fanclub_api/ent/subscription"
@@ -26,6 +28,10 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// Asset is the client for interacting with the Asset builders.
+	Asset *AssetClient
+	// Billboard is the client for interacting with the Billboard builders.
+	Billboard *BillboardClient
 	// Category is the client for interacting with the Category builders.
 	Category *CategoryClient
 	// Post is the client for interacting with the Post builders.
@@ -43,6 +49,8 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.Asset = NewAssetClient(c.config)
+	c.Billboard = NewBillboardClient(c.config)
 	c.Category = NewCategoryClient(c.config)
 	c.Post = NewPostClient(c.config)
 	c.Subscription = NewSubscriptionClient(c.config)
@@ -138,6 +146,8 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	return &Tx{
 		ctx:          ctx,
 		config:       cfg,
+		Asset:        NewAssetClient(cfg),
+		Billboard:    NewBillboardClient(cfg),
 		Category:     NewCategoryClient(cfg),
 		Post:         NewPostClient(cfg),
 		Subscription: NewSubscriptionClient(cfg),
@@ -160,6 +170,8 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	return &Tx{
 		ctx:          ctx,
 		config:       cfg,
+		Asset:        NewAssetClient(cfg),
+		Billboard:    NewBillboardClient(cfg),
 		Category:     NewCategoryClient(cfg),
 		Post:         NewPostClient(cfg),
 		Subscription: NewSubscriptionClient(cfg),
@@ -169,7 +181,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		Category.
+//		Asset.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -191,6 +203,8 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
+	c.Asset.Use(hooks...)
+	c.Billboard.Use(hooks...)
 	c.Category.Use(hooks...)
 	c.Post.Use(hooks...)
 	c.Subscription.Use(hooks...)
@@ -199,6 +213,8 @@ func (c *Client) Use(hooks ...Hook) {
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
+	c.Asset.Intercept(interceptors...)
+	c.Billboard.Intercept(interceptors...)
 	c.Category.Intercept(interceptors...)
 	c.Post.Intercept(interceptors...)
 	c.Subscription.Intercept(interceptors...)
@@ -207,6 +223,10 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *AssetMutation:
+		return c.Asset.mutate(ctx, m)
+	case *BillboardMutation:
+		return c.Billboard.mutate(ctx, m)
 	case *CategoryMutation:
 		return c.Category.mutate(ctx, m)
 	case *PostMutation:
@@ -215,6 +235,320 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Subscription.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
+// AssetClient is a client for the Asset schema.
+type AssetClient struct {
+	config
+}
+
+// NewAssetClient returns a client for the Asset from the given config.
+func NewAssetClient(c config) *AssetClient {
+	return &AssetClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `asset.Hooks(f(g(h())))`.
+func (c *AssetClient) Use(hooks ...Hook) {
+	c.hooks.Asset = append(c.hooks.Asset, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `asset.Intercept(f(g(h())))`.
+func (c *AssetClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Asset = append(c.inters.Asset, interceptors...)
+}
+
+// Create returns a builder for creating a Asset entity.
+func (c *AssetClient) Create() *AssetCreate {
+	mutation := newAssetMutation(c.config, OpCreate)
+	return &AssetCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Asset entities.
+func (c *AssetClient) CreateBulk(builders ...*AssetCreate) *AssetCreateBulk {
+	return &AssetCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AssetClient) MapCreateBulk(slice any, setFunc func(*AssetCreate, int)) *AssetCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AssetCreateBulk{err: fmt.Errorf("calling to AssetClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AssetCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AssetCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Asset.
+func (c *AssetClient) Update() *AssetUpdate {
+	mutation := newAssetMutation(c.config, OpUpdate)
+	return &AssetUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AssetClient) UpdateOne(a *Asset) *AssetUpdateOne {
+	mutation := newAssetMutation(c.config, OpUpdateOne, withAsset(a))
+	return &AssetUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AssetClient) UpdateOneID(id uuid.UUID) *AssetUpdateOne {
+	mutation := newAssetMutation(c.config, OpUpdateOne, withAssetID(id))
+	return &AssetUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Asset.
+func (c *AssetClient) Delete() *AssetDelete {
+	mutation := newAssetMutation(c.config, OpDelete)
+	return &AssetDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AssetClient) DeleteOne(a *Asset) *AssetDeleteOne {
+	return c.DeleteOneID(a.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AssetClient) DeleteOneID(id uuid.UUID) *AssetDeleteOne {
+	builder := c.Delete().Where(asset.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AssetDeleteOne{builder}
+}
+
+// Query returns a query builder for Asset.
+func (c *AssetClient) Query() *AssetQuery {
+	return &AssetQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAsset},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Asset entity by its id.
+func (c *AssetClient) Get(ctx context.Context, id uuid.UUID) (*Asset, error) {
+	return c.Query().Where(asset.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AssetClient) GetX(ctx context.Context, id uuid.UUID) *Asset {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryBillboard queries the billboard edge of a Asset.
+func (c *AssetClient) QueryBillboard(a *Asset) *BillboardQuery {
+	query := (&BillboardClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := a.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(asset.Table, asset.FieldID, id),
+			sqlgraph.To(billboard.Table, billboard.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, asset.BillboardTable, asset.BillboardColumn),
+		)
+		fromV = sqlgraph.Neighbors(a.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPost queries the post edge of a Asset.
+func (c *AssetClient) QueryPost(a *Asset) *PostQuery {
+	query := (&PostClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := a.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(asset.Table, asset.FieldID, id),
+			sqlgraph.To(post.Table, post.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, asset.PostTable, asset.PostColumn),
+		)
+		fromV = sqlgraph.Neighbors(a.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *AssetClient) Hooks() []Hook {
+	return c.hooks.Asset
+}
+
+// Interceptors returns the client interceptors.
+func (c *AssetClient) Interceptors() []Interceptor {
+	return c.inters.Asset
+}
+
+func (c *AssetClient) mutate(ctx context.Context, m *AssetMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AssetCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AssetUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AssetUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AssetDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Asset mutation op: %q", m.Op())
+	}
+}
+
+// BillboardClient is a client for the Billboard schema.
+type BillboardClient struct {
+	config
+}
+
+// NewBillboardClient returns a client for the Billboard from the given config.
+func NewBillboardClient(c config) *BillboardClient {
+	return &BillboardClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `billboard.Hooks(f(g(h())))`.
+func (c *BillboardClient) Use(hooks ...Hook) {
+	c.hooks.Billboard = append(c.hooks.Billboard, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `billboard.Intercept(f(g(h())))`.
+func (c *BillboardClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Billboard = append(c.inters.Billboard, interceptors...)
+}
+
+// Create returns a builder for creating a Billboard entity.
+func (c *BillboardClient) Create() *BillboardCreate {
+	mutation := newBillboardMutation(c.config, OpCreate)
+	return &BillboardCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Billboard entities.
+func (c *BillboardClient) CreateBulk(builders ...*BillboardCreate) *BillboardCreateBulk {
+	return &BillboardCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *BillboardClient) MapCreateBulk(slice any, setFunc func(*BillboardCreate, int)) *BillboardCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &BillboardCreateBulk{err: fmt.Errorf("calling to BillboardClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*BillboardCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &BillboardCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Billboard.
+func (c *BillboardClient) Update() *BillboardUpdate {
+	mutation := newBillboardMutation(c.config, OpUpdate)
+	return &BillboardUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *BillboardClient) UpdateOne(b *Billboard) *BillboardUpdateOne {
+	mutation := newBillboardMutation(c.config, OpUpdateOne, withBillboard(b))
+	return &BillboardUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *BillboardClient) UpdateOneID(id uuid.UUID) *BillboardUpdateOne {
+	mutation := newBillboardMutation(c.config, OpUpdateOne, withBillboardID(id))
+	return &BillboardUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Billboard.
+func (c *BillboardClient) Delete() *BillboardDelete {
+	mutation := newBillboardMutation(c.config, OpDelete)
+	return &BillboardDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *BillboardClient) DeleteOne(b *Billboard) *BillboardDeleteOne {
+	return c.DeleteOneID(b.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *BillboardClient) DeleteOneID(id uuid.UUID) *BillboardDeleteOne {
+	builder := c.Delete().Where(billboard.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &BillboardDeleteOne{builder}
+}
+
+// Query returns a query builder for Billboard.
+func (c *BillboardClient) Query() *BillboardQuery {
+	return &BillboardQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeBillboard},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Billboard entity by its id.
+func (c *BillboardClient) Get(ctx context.Context, id uuid.UUID) (*Billboard, error) {
+	return c.Query().Where(billboard.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *BillboardClient) GetX(ctx context.Context, id uuid.UUID) *Billboard {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryAsset queries the asset edge of a Billboard.
+func (c *BillboardClient) QueryAsset(b *Billboard) *AssetQuery {
+	query := (&AssetClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := b.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billboard.Table, billboard.FieldID, id),
+			sqlgraph.To(asset.Table, asset.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, billboard.AssetTable, billboard.AssetColumn),
+		)
+		fromV = sqlgraph.Neighbors(b.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *BillboardClient) Hooks() []Hook {
+	return c.hooks.Billboard
+}
+
+// Interceptors returns the client interceptors.
+func (c *BillboardClient) Interceptors() []Interceptor {
+	return c.inters.Billboard
+}
+
+func (c *BillboardClient) mutate(ctx context.Context, m *BillboardMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&BillboardCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&BillboardUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&BillboardUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&BillboardDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Billboard mutation op: %q", m.Op())
 	}
 }
 
@@ -491,6 +825,22 @@ func (c *PostClient) QueryCategories(po *Post) *CategoryQuery {
 	return query
 }
 
+// QueryAssets queries the assets edge of a Post.
+func (c *PostClient) QueryAssets(po *Post) *AssetQuery {
+	query := (&AssetClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := po.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(post.Table, post.FieldID, id),
+			sqlgraph.To(asset.Table, asset.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, post.AssetsTable, post.AssetsColumn),
+		)
+		fromV = sqlgraph.Neighbors(po.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QuerySubscriptions queries the subscriptions edge of a Post.
 func (c *PostClient) QuerySubscriptions(po *Post) *SubscriptionQuery {
 	query := (&SubscriptionClient{config: c.config}).Query()
@@ -684,9 +1034,9 @@ func (c *SubscriptionClient) mutate(ctx context.Context, m *SubscriptionMutation
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Category, Post, Subscription []ent.Hook
+		Asset, Billboard, Category, Post, Subscription []ent.Hook
 	}
 	inters struct {
-		Category, Post, Subscription []ent.Interceptor
+		Asset, Billboard, Category, Post, Subscription []ent.Interceptor
 	}
 )

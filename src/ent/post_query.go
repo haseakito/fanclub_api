@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
+	"github.com/hackgame-org/fanclub_api/ent/asset"
 	"github.com/hackgame-org/fanclub_api/ent/category"
 	"github.com/hackgame-org/fanclub_api/ent/post"
 	"github.com/hackgame-org/fanclub_api/ent/predicate"
@@ -26,6 +27,7 @@ type PostQuery struct {
 	inters            []Interceptor
 	predicates        []predicate.Post
 	withCategories    *CategoryQuery
+	withAssets        *AssetQuery
 	withSubscriptions *SubscriptionQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -78,6 +80,28 @@ func (pq *PostQuery) QueryCategories() *CategoryQuery {
 			sqlgraph.From(post.Table, post.FieldID, selector),
 			sqlgraph.To(category.Table, category.FieldID),
 			sqlgraph.Edge(sqlgraph.M2M, false, post.CategoriesTable, post.CategoriesPrimaryKey...),
+		)
+		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryAssets chains the current query on the "assets" edge.
+func (pq *PostQuery) QueryAssets() *AssetQuery {
+	query := (&AssetClient{config: pq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := pq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := pq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(post.Table, post.FieldID, selector),
+			sqlgraph.To(asset.Table, asset.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, post.AssetsTable, post.AssetsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
 		return fromU, nil
@@ -300,6 +324,7 @@ func (pq *PostQuery) Clone() *PostQuery {
 		inters:            append([]Interceptor{}, pq.inters...),
 		predicates:        append([]predicate.Post{}, pq.predicates...),
 		withCategories:    pq.withCategories.Clone(),
+		withAssets:        pq.withAssets.Clone(),
 		withSubscriptions: pq.withSubscriptions.Clone(),
 		// clone intermediate query.
 		sql:  pq.sql.Clone(),
@@ -315,6 +340,17 @@ func (pq *PostQuery) WithCategories(opts ...func(*CategoryQuery)) *PostQuery {
 		opt(query)
 	}
 	pq.withCategories = query
+	return pq
+}
+
+// WithAssets tells the query-builder to eager-load the nodes that are connected to
+// the "assets" edge. The optional arguments are used to configure the query builder of the edge.
+func (pq *PostQuery) WithAssets(opts ...func(*AssetQuery)) *PostQuery {
+	query := (&AssetClient{config: pq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	pq.withAssets = query
 	return pq
 }
 
@@ -407,8 +443,9 @@ func (pq *PostQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Post, e
 	var (
 		nodes       = []*Post{}
 		_spec       = pq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			pq.withCategories != nil,
+			pq.withAssets != nil,
 			pq.withSubscriptions != nil,
 		}
 	)
@@ -434,6 +471,13 @@ func (pq *PostQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Post, e
 		if err := pq.loadCategories(ctx, query, nodes,
 			func(n *Post) { n.Edges.Categories = []*Category{} },
 			func(n *Post, e *Category) { n.Edges.Categories = append(n.Edges.Categories, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := pq.withAssets; query != nil {
+		if err := pq.loadAssets(ctx, query, nodes,
+			func(n *Post) { n.Edges.Assets = []*Asset{} },
+			func(n *Post, e *Asset) { n.Edges.Assets = append(n.Edges.Assets, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -505,6 +549,37 @@ func (pq *PostQuery) loadCategories(ctx context.Context, query *CategoryQuery, n
 		for kn := range nodes {
 			assign(kn, n)
 		}
+	}
+	return nil
+}
+func (pq *PostQuery) loadAssets(ctx context.Context, query *AssetQuery, nodes []*Post, init func(*Post), assign func(*Post, *Asset)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*Post)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.Asset(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(post.AssetsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.post_assets
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "post_assets" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "post_assets" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
 	}
 	return nil
 }

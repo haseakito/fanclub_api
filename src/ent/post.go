@@ -44,11 +44,13 @@ type Post struct {
 type PostEdges struct {
 	// Categories holds the value of the categories edge.
 	Categories []*Category `json:"categories,omitempty"`
+	// Assets holds the value of the assets edge.
+	Assets []*Asset `json:"assets,omitempty"`
 	// Subscriptions holds the value of the subscriptions edge.
 	Subscriptions []*Subscription `json:"subscriptions,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // CategoriesOrErr returns the Categories value or an error if the edge
@@ -60,10 +62,19 @@ func (e PostEdges) CategoriesOrErr() ([]*Category, error) {
 	return nil, &NotLoadedError{edge: "categories"}
 }
 
+// AssetsOrErr returns the Assets value or an error if the edge
+// was not loaded in eager-loading.
+func (e PostEdges) AssetsOrErr() ([]*Asset, error) {
+	if e.loadedTypes[1] {
+		return e.Assets, nil
+	}
+	return nil, &NotLoadedError{edge: "assets"}
+}
+
 // SubscriptionsOrErr returns the Subscriptions value or an error if the edge
 // was not loaded in eager-loading.
 func (e PostEdges) SubscriptionsOrErr() ([]*Subscription, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[2] {
 		return e.Subscriptions, nil
 	}
 	return nil, &NotLoadedError{edge: "subscriptions"}
@@ -171,6 +182,11 @@ func (po *Post) Value(name string) (ent.Value, error) {
 // QueryCategories queries the "categories" edge of the Post entity.
 func (po *Post) QueryCategories() *CategoryQuery {
 	return NewPostClient(po.config).QueryCategories(po)
+}
+
+// QueryAssets queries the "assets" edge of the Post entity.
+func (po *Post) QueryAssets() *AssetQuery {
+	return NewPostClient(po.config).QueryAssets(po)
 }
 
 // QuerySubscriptions queries the "subscriptions" edge of the Post entity.

@@ -8,6 +8,51 @@ import (
 )
 
 var (
+	// AssetsColumns holds the columns for the "assets" table.
+	AssetsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "public_id", Type: field.TypeString, Unique: true},
+		{Name: "url", Type: field.TypeString},
+		{Name: "resource_type", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "billboard_asset", Type: field.TypeUUID, Unique: true, Nullable: true},
+		{Name: "post_assets", Type: field.TypeUUID, Nullable: true},
+	}
+	// AssetsTable holds the schema information for the "assets" table.
+	AssetsTable = &schema.Table{
+		Name:       "assets",
+		Columns:    AssetsColumns,
+		PrimaryKey: []*schema.Column{AssetsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "assets_billboards_asset",
+				Columns:    []*schema.Column{AssetsColumns[6]},
+				RefColumns: []*schema.Column{BillboardsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "assets_posts_assets",
+				Columns:    []*schema.Column{AssetsColumns[7]},
+				RefColumns: []*schema.Column{PostsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
+	// BillboardsColumns holds the columns for the "billboards" table.
+	BillboardsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "title", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true, Size: 2147483647},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// BillboardsTable holds the schema information for the "billboards" table.
+	BillboardsTable = &schema.Table{
+		Name:       "billboards",
+		Columns:    BillboardsColumns,
+		PrimaryKey: []*schema.Column{BillboardsColumns[0]},
+	}
 	// CategoriesColumns holds the columns for the "categories" table.
 	CategoriesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -109,6 +154,8 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		AssetsTable,
+		BillboardsTable,
 		CategoriesTable,
 		PostsTable,
 		SubscriptionsTable,
@@ -118,6 +165,8 @@ var (
 )
 
 func init() {
+	AssetsTable.ForeignKeys[0].RefTable = BillboardsTable
+	AssetsTable.ForeignKeys[1].RefTable = PostsTable
 	PostCategoriesTable.ForeignKeys[0].RefTable = PostsTable
 	PostCategoriesTable.ForeignKeys[1].RefTable = CategoriesTable
 	SubscriptionPostsTable.ForeignKeys[0].RefTable = SubscriptionsTable

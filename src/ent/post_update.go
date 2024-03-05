@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
+	"github.com/hackgame-org/fanclub_api/ent/asset"
 	"github.com/hackgame-org/fanclub_api/ent/category"
 	"github.com/hackgame-org/fanclub_api/ent/post"
 	"github.com/hackgame-org/fanclub_api/ent/predicate"
@@ -169,6 +170,21 @@ func (pu *PostUpdate) AddCategories(c ...*Category) *PostUpdate {
 	return pu.AddCategoryIDs(ids...)
 }
 
+// AddAssetIDs adds the "assets" edge to the Asset entity by IDs.
+func (pu *PostUpdate) AddAssetIDs(ids ...uuid.UUID) *PostUpdate {
+	pu.mutation.AddAssetIDs(ids...)
+	return pu
+}
+
+// AddAssets adds the "assets" edges to the Asset entity.
+func (pu *PostUpdate) AddAssets(a ...*Asset) *PostUpdate {
+	ids := make([]uuid.UUID, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return pu.AddAssetIDs(ids...)
+}
+
 // AddSubscriptionIDs adds the "subscriptions" edge to the Subscription entity by IDs.
 func (pu *PostUpdate) AddSubscriptionIDs(ids ...uuid.UUID) *PostUpdate {
 	pu.mutation.AddSubscriptionIDs(ids...)
@@ -208,6 +224,27 @@ func (pu *PostUpdate) RemoveCategories(c ...*Category) *PostUpdate {
 		ids[i] = c[i].ID
 	}
 	return pu.RemoveCategoryIDs(ids...)
+}
+
+// ClearAssets clears all "assets" edges to the Asset entity.
+func (pu *PostUpdate) ClearAssets() *PostUpdate {
+	pu.mutation.ClearAssets()
+	return pu
+}
+
+// RemoveAssetIDs removes the "assets" edge to Asset entities by IDs.
+func (pu *PostUpdate) RemoveAssetIDs(ids ...uuid.UUID) *PostUpdate {
+	pu.mutation.RemoveAssetIDs(ids...)
+	return pu
+}
+
+// RemoveAssets removes "assets" edges to Asset entities.
+func (pu *PostUpdate) RemoveAssets(a ...*Asset) *PostUpdate {
+	ids := make([]uuid.UUID, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return pu.RemoveAssetIDs(ids...)
 }
 
 // ClearSubscriptions clears all "subscriptions" edges to the Subscription entity.
@@ -347,6 +384,51 @@ func (pu *PostUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(category.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if pu.mutation.AssetsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   post.AssetsTable,
+			Columns: []string{post.AssetsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(asset.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.RemovedAssetsIDs(); len(nodes) > 0 && !pu.mutation.AssetsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   post.AssetsTable,
+			Columns: []string{post.AssetsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(asset.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.AssetsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   post.AssetsTable,
+			Columns: []string{post.AssetsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(asset.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -557,6 +639,21 @@ func (puo *PostUpdateOne) AddCategories(c ...*Category) *PostUpdateOne {
 	return puo.AddCategoryIDs(ids...)
 }
 
+// AddAssetIDs adds the "assets" edge to the Asset entity by IDs.
+func (puo *PostUpdateOne) AddAssetIDs(ids ...uuid.UUID) *PostUpdateOne {
+	puo.mutation.AddAssetIDs(ids...)
+	return puo
+}
+
+// AddAssets adds the "assets" edges to the Asset entity.
+func (puo *PostUpdateOne) AddAssets(a ...*Asset) *PostUpdateOne {
+	ids := make([]uuid.UUID, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return puo.AddAssetIDs(ids...)
+}
+
 // AddSubscriptionIDs adds the "subscriptions" edge to the Subscription entity by IDs.
 func (puo *PostUpdateOne) AddSubscriptionIDs(ids ...uuid.UUID) *PostUpdateOne {
 	puo.mutation.AddSubscriptionIDs(ids...)
@@ -596,6 +693,27 @@ func (puo *PostUpdateOne) RemoveCategories(c ...*Category) *PostUpdateOne {
 		ids[i] = c[i].ID
 	}
 	return puo.RemoveCategoryIDs(ids...)
+}
+
+// ClearAssets clears all "assets" edges to the Asset entity.
+func (puo *PostUpdateOne) ClearAssets() *PostUpdateOne {
+	puo.mutation.ClearAssets()
+	return puo
+}
+
+// RemoveAssetIDs removes the "assets" edge to Asset entities by IDs.
+func (puo *PostUpdateOne) RemoveAssetIDs(ids ...uuid.UUID) *PostUpdateOne {
+	puo.mutation.RemoveAssetIDs(ids...)
+	return puo
+}
+
+// RemoveAssets removes "assets" edges to Asset entities.
+func (puo *PostUpdateOne) RemoveAssets(a ...*Asset) *PostUpdateOne {
+	ids := make([]uuid.UUID, len(a))
+	for i := range a {
+		ids[i] = a[i].ID
+	}
+	return puo.RemoveAssetIDs(ids...)
 }
 
 // ClearSubscriptions clears all "subscriptions" edges to the Subscription entity.
@@ -765,6 +883,51 @@ func (puo *PostUpdateOne) sqlSave(ctx context.Context) (_node *Post, err error) 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(category.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if puo.mutation.AssetsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   post.AssetsTable,
+			Columns: []string{post.AssetsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(asset.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.RemovedAssetsIDs(); len(nodes) > 0 && !puo.mutation.AssetsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   post.AssetsTable,
+			Columns: []string{post.AssetsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(asset.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.AssetsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   post.AssetsTable,
+			Columns: []string{post.AssetsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(asset.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
