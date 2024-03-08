@@ -81,8 +81,7 @@ func TestGetPostsByCategoryID(t *testing.T) {
 	_, err = tx.Post.
 		Create().
 		SetID(postUUID).
-		SetTitle("test title").
-		SetUserID("test-user-id").
+		SetTitle("test title").		
 		AddCategories(tx.Category.GetX(ctx, categoryUUID)).
 		Save(ctx)
 	require.NoError(t, err)
