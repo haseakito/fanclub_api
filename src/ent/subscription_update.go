@@ -15,6 +15,7 @@ import (
 	"github.com/hackgame-org/fanclub_api/ent/post"
 	"github.com/hackgame-org/fanclub_api/ent/predicate"
 	"github.com/hackgame-org/fanclub_api/ent/subscription"
+	"github.com/hackgame-org/fanclub_api/ent/user"
 )
 
 // SubscriptionUpdate is the builder for updating Subscription entities.
@@ -27,20 +28,6 @@ type SubscriptionUpdate struct {
 // Where appends a list predicates to the SubscriptionUpdate builder.
 func (su *SubscriptionUpdate) Where(ps ...predicate.Subscription) *SubscriptionUpdate {
 	su.mutation.Where(ps...)
-	return su
-}
-
-// SetUserID sets the "user_id" field.
-func (su *SubscriptionUpdate) SetUserID(s string) *SubscriptionUpdate {
-	su.mutation.SetUserID(s)
-	return su
-}
-
-// SetNillableUserID sets the "user_id" field if the given value is not nil.
-func (su *SubscriptionUpdate) SetNillableUserID(s *string) *SubscriptionUpdate {
-	if s != nil {
-		su.SetUserID(*s)
-	}
 	return su
 }
 
@@ -148,6 +135,25 @@ func (su *SubscriptionUpdate) SetUpdatedAt(t time.Time) *SubscriptionUpdate {
 	return su
 }
 
+// SetUserID sets the "user" edge to the User entity by ID.
+func (su *SubscriptionUpdate) SetUserID(id string) *SubscriptionUpdate {
+	su.mutation.SetUserID(id)
+	return su
+}
+
+// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
+func (su *SubscriptionUpdate) SetNillableUserID(id *string) *SubscriptionUpdate {
+	if id != nil {
+		su = su.SetUserID(*id)
+	}
+	return su
+}
+
+// SetUser sets the "user" edge to the User entity.
+func (su *SubscriptionUpdate) SetUser(u *User) *SubscriptionUpdate {
+	return su.SetUserID(u.ID)
+}
+
 // AddPostIDs adds the "posts" edge to the Post entity by IDs.
 func (su *SubscriptionUpdate) AddPostIDs(ids ...uuid.UUID) *SubscriptionUpdate {
 	su.mutation.AddPostIDs(ids...)
@@ -166,6 +172,12 @@ func (su *SubscriptionUpdate) AddPosts(p ...*Post) *SubscriptionUpdate {
 // Mutation returns the SubscriptionMutation object of the builder.
 func (su *SubscriptionUpdate) Mutation() *SubscriptionMutation {
 	return su.mutation
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (su *SubscriptionUpdate) ClearUser() *SubscriptionUpdate {
+	su.mutation.ClearUser()
+	return su
 }
 
 // ClearPosts clears all "posts" edges to the Post entity.
@@ -234,9 +246,6 @@ func (su *SubscriptionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			}
 		}
 	}
-	if value, ok := su.mutation.UserID(); ok {
-		_spec.SetField(subscription.FieldUserID, field.TypeString, value)
-	}
 	if value, ok := su.mutation.Name(); ok {
 		_spec.SetField(subscription.FieldName, field.TypeString, value)
 	}
@@ -263,6 +272,35 @@ func (su *SubscriptionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := su.mutation.UpdatedAt(); ok {
 		_spec.SetField(subscription.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if su.mutation.UserCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   subscription.UserTable,
+			Columns: []string{subscription.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := su.mutation.UserIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   subscription.UserTable,
+			Columns: []string{subscription.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if su.mutation.PostsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -327,20 +365,6 @@ type SubscriptionUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *SubscriptionMutation
-}
-
-// SetUserID sets the "user_id" field.
-func (suo *SubscriptionUpdateOne) SetUserID(s string) *SubscriptionUpdateOne {
-	suo.mutation.SetUserID(s)
-	return suo
-}
-
-// SetNillableUserID sets the "user_id" field if the given value is not nil.
-func (suo *SubscriptionUpdateOne) SetNillableUserID(s *string) *SubscriptionUpdateOne {
-	if s != nil {
-		suo.SetUserID(*s)
-	}
-	return suo
 }
 
 // SetName sets the "name" field.
@@ -447,6 +471,25 @@ func (suo *SubscriptionUpdateOne) SetUpdatedAt(t time.Time) *SubscriptionUpdateO
 	return suo
 }
 
+// SetUserID sets the "user" edge to the User entity by ID.
+func (suo *SubscriptionUpdateOne) SetUserID(id string) *SubscriptionUpdateOne {
+	suo.mutation.SetUserID(id)
+	return suo
+}
+
+// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
+func (suo *SubscriptionUpdateOne) SetNillableUserID(id *string) *SubscriptionUpdateOne {
+	if id != nil {
+		suo = suo.SetUserID(*id)
+	}
+	return suo
+}
+
+// SetUser sets the "user" edge to the User entity.
+func (suo *SubscriptionUpdateOne) SetUser(u *User) *SubscriptionUpdateOne {
+	return suo.SetUserID(u.ID)
+}
+
 // AddPostIDs adds the "posts" edge to the Post entity by IDs.
 func (suo *SubscriptionUpdateOne) AddPostIDs(ids ...uuid.UUID) *SubscriptionUpdateOne {
 	suo.mutation.AddPostIDs(ids...)
@@ -465,6 +508,12 @@ func (suo *SubscriptionUpdateOne) AddPosts(p ...*Post) *SubscriptionUpdateOne {
 // Mutation returns the SubscriptionMutation object of the builder.
 func (suo *SubscriptionUpdateOne) Mutation() *SubscriptionMutation {
 	return suo.mutation
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (suo *SubscriptionUpdateOne) ClearUser() *SubscriptionUpdateOne {
+	suo.mutation.ClearUser()
+	return suo
 }
 
 // ClearPosts clears all "posts" edges to the Post entity.
@@ -563,9 +612,6 @@ func (suo *SubscriptionUpdateOne) sqlSave(ctx context.Context) (_node *Subscript
 			}
 		}
 	}
-	if value, ok := suo.mutation.UserID(); ok {
-		_spec.SetField(subscription.FieldUserID, field.TypeString, value)
-	}
 	if value, ok := suo.mutation.Name(); ok {
 		_spec.SetField(subscription.FieldName, field.TypeString, value)
 	}
@@ -592,6 +638,35 @@ func (suo *SubscriptionUpdateOne) sqlSave(ctx context.Context) (_node *Subscript
 	}
 	if value, ok := suo.mutation.UpdatedAt(); ok {
 		_spec.SetField(subscription.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if suo.mutation.UserCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   subscription.UserTable,
+			Columns: []string{subscription.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := suo.mutation.UserIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   subscription.UserTable,
+			Columns: []string{subscription.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if suo.mutation.PostsCleared() {
 		edge := &sqlgraph.EdgeSpec{

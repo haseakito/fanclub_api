@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
 	"github.com/hackgame-org/fanclub_api/ent/post"
+	"github.com/hackgame-org/fanclub_api/ent/user"
 )
 
 // Post is the model entity for the Post schema.
@@ -18,8 +19,6 @@ type Post struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID uuid.UUID `json:"id,omitempty"`
-	// UserID holds the value of the "user_id" field.
-	UserID string `json:"user_id,omitempty"`
 	// Title holds the value of the "title" field.
 	Title string `json:"title,omitempty"`
 	// Description holds the value of the "description" field.
@@ -37,26 +36,49 @@ type Post struct {
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the PostQuery when eager-loading is set.
 	Edges        PostEdges `json:"edges"`
+	user_posts   *string
 	selectValues sql.SelectValues
 }
 
 // PostEdges holds the relations/edges for other nodes in the graph.
 type PostEdges struct {
+	// User holds the value of the user edge.
+	User *User `json:"user,omitempty"`
+	// Subscriptions holds the value of the subscriptions edge.
+	Subscriptions []*Subscription `json:"subscriptions,omitempty"`
 	// Categories holds the value of the categories edge.
 	Categories []*Category `json:"categories,omitempty"`
 	// Assets holds the value of the assets edge.
 	Assets []*Asset `json:"assets,omitempty"`
-	// Subscriptions holds the value of the subscriptions edge.
-	Subscriptions []*Subscription `json:"subscriptions,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
+}
+
+// UserOrErr returns the User value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e PostEdges) UserOrErr() (*User, error) {
+	if e.User != nil {
+		return e.User, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: user.Label}
+	}
+	return nil, &NotLoadedError{edge: "user"}
+}
+
+// SubscriptionsOrErr returns the Subscriptions value or an error if the edge
+// was not loaded in eager-loading.
+func (e PostEdges) SubscriptionsOrErr() ([]*Subscription, error) {
+	if e.loadedTypes[1] {
+		return e.Subscriptions, nil
+	}
+	return nil, &NotLoadedError{edge: "subscriptions"}
 }
 
 // CategoriesOrErr returns the Categories value or an error if the edge
 // was not loaded in eager-loading.
 func (e PostEdges) CategoriesOrErr() ([]*Category, error) {
-	if e.loadedTypes[0] {
+	if e.loadedTypes[2] {
 		return e.Categories, nil
 	}
 	return nil, &NotLoadedError{edge: "categories"}
@@ -65,19 +87,10 @@ func (e PostEdges) CategoriesOrErr() ([]*Category, error) {
 // AssetsOrErr returns the Assets value or an error if the edge
 // was not loaded in eager-loading.
 func (e PostEdges) AssetsOrErr() ([]*Asset, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[3] {
 		return e.Assets, nil
 	}
 	return nil, &NotLoadedError{edge: "assets"}
-}
-
-// SubscriptionsOrErr returns the Subscriptions value or an error if the edge
-// was not loaded in eager-loading.
-func (e PostEdges) SubscriptionsOrErr() ([]*Subscription, error) {
-	if e.loadedTypes[2] {
-		return e.Subscriptions, nil
-	}
-	return nil, &NotLoadedError{edge: "subscriptions"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -89,12 +102,14 @@ func (*Post) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case post.FieldPrice:
 			values[i] = new(sql.NullInt64)
-		case post.FieldUserID, post.FieldTitle, post.FieldDescription:
+		case post.FieldTitle, post.FieldDescription:
 			values[i] = new(sql.NullString)
 		case post.FieldCreatedAt, post.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		case post.FieldID:
 			values[i] = new(uuid.UUID)
+		case post.ForeignKeys[0]: // user_posts
+			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -115,12 +130,6 @@ func (po *Post) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value != nil {
 				po.ID = *value
-			}
-		case post.FieldUserID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field user_id", values[i])
-			} else if value.Valid {
-				po.UserID = value.String
 			}
 		case post.FieldTitle:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -166,6 +175,13 @@ func (po *Post) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				po.UpdatedAt = value.Time
 			}
+		case post.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field user_posts", values[i])
+			} else if value.Valid {
+				po.user_posts = new(string)
+				*po.user_posts = value.String
+			}
 		default:
 			po.selectValues.Set(columns[i], values[i])
 		}
@@ -179,6 +195,16 @@ func (po *Post) Value(name string) (ent.Value, error) {
 	return po.selectValues.Get(name)
 }
 
+// QueryUser queries the "user" edge of the Post entity.
+func (po *Post) QueryUser() *UserQuery {
+	return NewPostClient(po.config).QueryUser(po)
+}
+
+// QuerySubscriptions queries the "subscriptions" edge of the Post entity.
+func (po *Post) QuerySubscriptions() *SubscriptionQuery {
+	return NewPostClient(po.config).QuerySubscriptions(po)
+}
+
 // QueryCategories queries the "categories" edge of the Post entity.
 func (po *Post) QueryCategories() *CategoryQuery {
 	return NewPostClient(po.config).QueryCategories(po)
@@ -187,11 +213,6 @@ func (po *Post) QueryCategories() *CategoryQuery {
 // QueryAssets queries the "assets" edge of the Post entity.
 func (po *Post) QueryAssets() *AssetQuery {
 	return NewPostClient(po.config).QueryAssets(po)
-}
-
-// QuerySubscriptions queries the "subscriptions" edge of the Post entity.
-func (po *Post) QuerySubscriptions() *SubscriptionQuery {
-	return NewPostClient(po.config).QuerySubscriptions(po)
 }
 
 // Update returns a builder for updating this Post.
@@ -217,9 +238,6 @@ func (po *Post) String() string {
 	var builder strings.Builder
 	builder.WriteString("Post(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", po.ID))
-	builder.WriteString("user_id=")
-	builder.WriteString(po.UserID)
-	builder.WriteString(", ")
 	builder.WriteString("title=")
 	builder.WriteString(po.Title)
 	builder.WriteString(", ")

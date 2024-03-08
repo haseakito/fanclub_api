@@ -18,7 +18,6 @@ type Post struct {
 func (Post) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).Default(uuid.New),
-		field.String("user_id"),
 		field.String("title"),
 		field.Text("description").Optional(),
 		field.Int("price").Optional(),
@@ -34,13 +33,16 @@ func (Post) Fields() []ent.Field {
 // Edges of the Post.
 func (Post) Edges() []ent.Edge {
 	return []ent.Edge{
+		// Belongs-to relationship to a user
+		edge.From("user", User.Type).Ref("posts").Unique(),
+
+		// Belongs-to relationship to subscriptions
+		edge.From("subscriptions", Subscription.Type).Ref("posts"),
+
 		// Has-many relationship to category
 		edge.To("categories", Category.Type),
 
 		// Has-many relationship to asset
 		edge.To("assets", Asset.Type),
-
-		// Belongs-to relationship to subscription
-		edge.From("subscriptions", Subscription.Type).Ref("posts"),
 	}
 }

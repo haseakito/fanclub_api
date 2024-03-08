@@ -15,6 +15,7 @@ import (
 	"github.com/hackgame-org/fanclub_api/ent/post"
 	"github.com/hackgame-org/fanclub_api/ent/predicate"
 	"github.com/hackgame-org/fanclub_api/ent/subscription"
+	"github.com/hackgame-org/fanclub_api/ent/user"
 )
 
 // SubscriptionQuery is the builder for querying Subscription entities.
@@ -24,7 +25,9 @@ type SubscriptionQuery struct {
 	order      []subscription.OrderOption
 	inters     []Interceptor
 	predicates []predicate.Subscription
+	withUser   *UserQuery
 	withPosts  *PostQuery
+	withFKs    bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -59,6 +62,28 @@ func (sq *SubscriptionQuery) Unique(unique bool) *SubscriptionQuery {
 func (sq *SubscriptionQuery) Order(o ...subscription.OrderOption) *SubscriptionQuery {
 	sq.order = append(sq.order, o...)
 	return sq
+}
+
+// QueryUser chains the current query on the "user" edge.
+func (sq *SubscriptionQuery) QueryUser() *UserQuery {
+	query := (&UserClient{config: sq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := sq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := sq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(subscription.Table, subscription.FieldID, selector),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, subscription.UserTable, subscription.UserColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(sq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // QueryPosts chains the current query on the "posts" edge.
@@ -275,11 +300,23 @@ func (sq *SubscriptionQuery) Clone() *SubscriptionQuery {
 		order:      append([]subscription.OrderOption{}, sq.order...),
 		inters:     append([]Interceptor{}, sq.inters...),
 		predicates: append([]predicate.Subscription{}, sq.predicates...),
+		withUser:   sq.withUser.Clone(),
 		withPosts:  sq.withPosts.Clone(),
 		// clone intermediate query.
 		sql:  sq.sql.Clone(),
 		path: sq.path,
 	}
+}
+
+// WithUser tells the query-builder to eager-load the nodes that are connected to
+// the "user" edge. The optional arguments are used to configure the query builder of the edge.
+func (sq *SubscriptionQuery) WithUser(opts ...func(*UserQuery)) *SubscriptionQuery {
+	query := (&UserClient{config: sq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	sq.withUser = query
+	return sq
 }
 
 // WithPosts tells the query-builder to eager-load the nodes that are connected to
@@ -299,12 +336,12 @@ func (sq *SubscriptionQuery) WithPosts(opts ...func(*PostQuery)) *SubscriptionQu
 // Example:
 //
 //	var v []struct {
-//		UserID string `json:"user_id,omitempty"`
+//		Name string `json:"name,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Subscription.Query().
-//		GroupBy(subscription.FieldUserID).
+//		GroupBy(subscription.FieldName).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (sq *SubscriptionQuery) GroupBy(field string, fields ...string) *SubscriptionGroupBy {
@@ -322,11 +359,11 @@ func (sq *SubscriptionQuery) GroupBy(field string, fields ...string) *Subscripti
 // Example:
 //
 //	var v []struct {
-//		UserID string `json:"user_id,omitempty"`
+//		Name string `json:"name,omitempty"`
 //	}
 //
 //	client.Subscription.Query().
-//		Select(subscription.FieldUserID).
+//		Select(subscription.FieldName).
 //		Scan(ctx, &v)
 func (sq *SubscriptionQuery) Select(fields ...string) *SubscriptionSelect {
 	sq.ctx.Fields = append(sq.ctx.Fields, fields...)
@@ -370,11 +407,19 @@ func (sq *SubscriptionQuery) prepareQuery(ctx context.Context) error {
 func (sq *SubscriptionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Subscription, error) {
 	var (
 		nodes       = []*Subscription{}
+		withFKs     = sq.withFKs
 		_spec       = sq.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
+			sq.withUser != nil,
 			sq.withPosts != nil,
 		}
 	)
+	if sq.withUser != nil {
+		withFKs = true
+	}
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, subscription.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Subscription).scanValues(nil, columns)
 	}
@@ -393,6 +438,12 @@ func (sq *SubscriptionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := sq.withUser; query != nil {
+		if err := sq.loadUser(ctx, query, nodes, nil,
+			func(n *Subscription, e *User) { n.Edges.User = e }); err != nil {
+			return nil, err
+		}
+	}
 	if query := sq.withPosts; query != nil {
 		if err := sq.loadPosts(ctx, query, nodes,
 			func(n *Subscription) { n.Edges.Posts = []*Post{} },
@@ -403,6 +454,38 @@ func (sq *SubscriptionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 	return nodes, nil
 }
 
+func (sq *SubscriptionQuery) loadUser(ctx context.Context, query *UserQuery, nodes []*Subscription, init func(*Subscription), assign func(*Subscription, *User)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*Subscription)
+	for i := range nodes {
+		if nodes[i].user_subscriptions == nil {
+			continue
+		}
+		fk := *nodes[i].user_subscriptions
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(user.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "user_subscriptions" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 func (sq *SubscriptionQuery) loadPosts(ctx context.Context, query *PostQuery, nodes []*Subscription, init func(*Subscription), assign func(*Subscription, *Post)) error {
 	edgeIDs := make([]driver.Value, len(nodes))
 	byID := make(map[uuid.UUID]*Subscription)

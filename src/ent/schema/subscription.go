@@ -18,7 +18,6 @@ type Subscription struct {
 func (Subscription) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).Default(uuid.New),
-		field.String("user_id"),
 		field.String("name"),
 		field.Text("description").Nillable(),
 		field.Int("price").Nillable(),
@@ -34,7 +33,10 @@ func (Subscription) Fields() []ent.Field {
 // Edges of the Subscription.
 func (Subscription) Edges() []ent.Edge {
 	return []ent.Edge{
+		// Belongs-to relationship to a user
+		edge.From("user", User.Type).Ref("subscriptions").Unique(),
 
+		// Has-many relationship to post
 		edge.To("posts", Post.Type),
 	}
 }

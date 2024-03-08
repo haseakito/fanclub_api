@@ -15,6 +15,7 @@ import (
 	"github.com/hackgame-org/fanclub_api/ent/category"
 	"github.com/hackgame-org/fanclub_api/ent/post"
 	"github.com/hackgame-org/fanclub_api/ent/subscription"
+	"github.com/hackgame-org/fanclub_api/ent/user"
 )
 
 // PostCreate is the builder for creating a Post entity.
@@ -22,12 +23,6 @@ type PostCreate struct {
 	config
 	mutation *PostMutation
 	hooks    []Hook
-}
-
-// SetUserID sets the "user_id" field.
-func (pc *PostCreate) SetUserID(s string) *PostCreate {
-	pc.mutation.SetUserID(s)
-	return pc
 }
 
 // SetTitle sets the "title" field.
@@ -134,6 +129,40 @@ func (pc *PostCreate) SetNillableID(u *uuid.UUID) *PostCreate {
 	return pc
 }
 
+// SetUserID sets the "user" edge to the User entity by ID.
+func (pc *PostCreate) SetUserID(id string) *PostCreate {
+	pc.mutation.SetUserID(id)
+	return pc
+}
+
+// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
+func (pc *PostCreate) SetNillableUserID(id *string) *PostCreate {
+	if id != nil {
+		pc = pc.SetUserID(*id)
+	}
+	return pc
+}
+
+// SetUser sets the "user" edge to the User entity.
+func (pc *PostCreate) SetUser(u *User) *PostCreate {
+	return pc.SetUserID(u.ID)
+}
+
+// AddSubscriptionIDs adds the "subscriptions" edge to the Subscription entity by IDs.
+func (pc *PostCreate) AddSubscriptionIDs(ids ...uuid.UUID) *PostCreate {
+	pc.mutation.AddSubscriptionIDs(ids...)
+	return pc
+}
+
+// AddSubscriptions adds the "subscriptions" edges to the Subscription entity.
+func (pc *PostCreate) AddSubscriptions(s ...*Subscription) *PostCreate {
+	ids := make([]uuid.UUID, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return pc.AddSubscriptionIDs(ids...)
+}
+
 // AddCategoryIDs adds the "categories" edge to the Category entity by IDs.
 func (pc *PostCreate) AddCategoryIDs(ids ...uuid.UUID) *PostCreate {
 	pc.mutation.AddCategoryIDs(ids...)
@@ -162,21 +191,6 @@ func (pc *PostCreate) AddAssets(a ...*Asset) *PostCreate {
 		ids[i] = a[i].ID
 	}
 	return pc.AddAssetIDs(ids...)
-}
-
-// AddSubscriptionIDs adds the "subscriptions" edge to the Subscription entity by IDs.
-func (pc *PostCreate) AddSubscriptionIDs(ids ...uuid.UUID) *PostCreate {
-	pc.mutation.AddSubscriptionIDs(ids...)
-	return pc
-}
-
-// AddSubscriptions adds the "subscriptions" edges to the Subscription entity.
-func (pc *PostCreate) AddSubscriptions(s ...*Subscription) *PostCreate {
-	ids := make([]uuid.UUID, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
-	}
-	return pc.AddSubscriptionIDs(ids...)
 }
 
 // Mutation returns the PostMutation object of the builder.
@@ -238,9 +252,6 @@ func (pc *PostCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (pc *PostCreate) check() error {
-	if _, ok := pc.mutation.UserID(); !ok {
-		return &ValidationError{Name: "user_id", err: errors.New(`ent: missing required field "Post.user_id"`)}
-	}
 	if _, ok := pc.mutation.Title(); !ok {
 		return &ValidationError{Name: "title", err: errors.New(`ent: missing required field "Post.title"`)}
 	}
@@ -291,10 +302,6 @@ func (pc *PostCreate) createSpec() (*Post, *sqlgraph.CreateSpec) {
 		_node.ID = id
 		_spec.ID.Value = &id
 	}
-	if value, ok := pc.mutation.UserID(); ok {
-		_spec.SetField(post.FieldUserID, field.TypeString, value)
-		_node.UserID = value
-	}
 	if value, ok := pc.mutation.Title(); ok {
 		_spec.SetField(post.FieldTitle, field.TypeString, value)
 		_node.Title = value
@@ -323,6 +330,39 @@ func (pc *PostCreate) createSpec() (*Post, *sqlgraph.CreateSpec) {
 		_spec.SetField(post.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
+	if nodes := pc.mutation.UserIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   post.UserTable,
+			Columns: []string{post.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.user_posts = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := pc.mutation.SubscriptionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   post.SubscriptionsTable,
+			Columns: post.SubscriptionsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	if nodes := pc.mutation.CategoriesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
@@ -348,22 +388,6 @@ func (pc *PostCreate) createSpec() (*Post, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(asset.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := pc.mutation.SubscriptionsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   post.SubscriptionsTable,
-			Columns: post.SubscriptionsPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

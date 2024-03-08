@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/hackgame-org/fanclub_api/ent/post"
 	"github.com/hackgame-org/fanclub_api/ent/subscription"
+	"github.com/hackgame-org/fanclub_api/ent/user"
 )
 
 // SubscriptionCreate is the builder for creating a Subscription entity.
@@ -20,12 +21,6 @@ type SubscriptionCreate struct {
 	config
 	mutation *SubscriptionMutation
 	hooks    []Hook
-}
-
-// SetUserID sets the "user_id" field.
-func (sc *SubscriptionCreate) SetUserID(s string) *SubscriptionCreate {
-	sc.mutation.SetUserID(s)
-	return sc
 }
 
 // SetName sets the "name" field.
@@ -108,6 +103,25 @@ func (sc *SubscriptionCreate) SetNillableID(u *uuid.UUID) *SubscriptionCreate {
 	return sc
 }
 
+// SetUserID sets the "user" edge to the User entity by ID.
+func (sc *SubscriptionCreate) SetUserID(id string) *SubscriptionCreate {
+	sc.mutation.SetUserID(id)
+	return sc
+}
+
+// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
+func (sc *SubscriptionCreate) SetNillableUserID(id *string) *SubscriptionCreate {
+	if id != nil {
+		sc = sc.SetUserID(*id)
+	}
+	return sc
+}
+
+// SetUser sets the "user" edge to the User entity.
+func (sc *SubscriptionCreate) SetUser(u *User) *SubscriptionCreate {
+	return sc.SetUserID(u.ID)
+}
+
 // AddPostIDs adds the "posts" edge to the Post entity by IDs.
 func (sc *SubscriptionCreate) AddPostIDs(ids ...uuid.UUID) *SubscriptionCreate {
 	sc.mutation.AddPostIDs(ids...)
@@ -178,9 +192,6 @@ func (sc *SubscriptionCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (sc *SubscriptionCreate) check() error {
-	if _, ok := sc.mutation.UserID(); !ok {
-		return &ValidationError{Name: "user_id", err: errors.New(`ent: missing required field "Subscription.user_id"`)}
-	}
 	if _, ok := sc.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Subscription.name"`)}
 	}
@@ -237,10 +248,6 @@ func (sc *SubscriptionCreate) createSpec() (*Subscription, *sqlgraph.CreateSpec)
 		_node.ID = id
 		_spec.ID.Value = &id
 	}
-	if value, ok := sc.mutation.UserID(); ok {
-		_spec.SetField(subscription.FieldUserID, field.TypeString, value)
-		_node.UserID = value
-	}
 	if value, ok := sc.mutation.Name(); ok {
 		_spec.SetField(subscription.FieldName, field.TypeString, value)
 		_node.Name = value
@@ -268,6 +275,23 @@ func (sc *SubscriptionCreate) createSpec() (*Subscription, *sqlgraph.CreateSpec)
 	if value, ok := sc.mutation.UpdatedAt(); ok {
 		_spec.SetField(subscription.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
+	}
+	if nodes := sc.mutation.UserIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   subscription.UserTable,
+			Columns: []string{subscription.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.user_subscriptions = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := sc.mutation.PostsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

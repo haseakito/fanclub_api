@@ -12,6 +12,7 @@ import (
 	"github.com/hackgame-org/fanclub_api/ent/post"
 	"github.com/hackgame-org/fanclub_api/ent/schema"
 	"github.com/hackgame-org/fanclub_api/ent/subscription"
+	"github.com/hackgame-org/fanclub_api/ent/user"
 )
 
 // The init function reads all schema descriptors with runtime code
@@ -69,19 +70,19 @@ func init() {
 	postFields := schema.Post{}.Fields()
 	_ = postFields
 	// postDescIsFeatured is the schema descriptor for is_featured field.
-	postDescIsFeatured := postFields[5].Descriptor()
+	postDescIsFeatured := postFields[4].Descriptor()
 	// post.DefaultIsFeatured holds the default value on creation for the is_featured field.
 	post.DefaultIsFeatured = postDescIsFeatured.Default.(bool)
 	// postDescStatus is the schema descriptor for status field.
-	postDescStatus := postFields[6].Descriptor()
+	postDescStatus := postFields[5].Descriptor()
 	// post.DefaultStatus holds the default value on creation for the status field.
 	post.DefaultStatus = postDescStatus.Default.(bool)
 	// postDescCreatedAt is the schema descriptor for created_at field.
-	postDescCreatedAt := postFields[7].Descriptor()
+	postDescCreatedAt := postFields[6].Descriptor()
 	// post.DefaultCreatedAt holds the default value on creation for the created_at field.
 	post.DefaultCreatedAt = postDescCreatedAt.Default.(func() time.Time)
 	// postDescUpdatedAt is the schema descriptor for updated_at field.
-	postDescUpdatedAt := postFields[8].Descriptor()
+	postDescUpdatedAt := postFields[7].Descriptor()
 	// post.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	post.DefaultUpdatedAt = postDescUpdatedAt.Default.(func() time.Time)
 	// post.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -93,15 +94,15 @@ func init() {
 	subscriptionFields := schema.Subscription{}.Fields()
 	_ = subscriptionFields
 	// subscriptionDescIsArchived is the schema descriptor for is_archived field.
-	subscriptionDescIsArchived := subscriptionFields[6].Descriptor()
+	subscriptionDescIsArchived := subscriptionFields[5].Descriptor()
 	// subscription.DefaultIsArchived holds the default value on creation for the is_archived field.
 	subscription.DefaultIsArchived = subscriptionDescIsArchived.Default.(bool)
 	// subscriptionDescCreatedAt is the schema descriptor for created_at field.
-	subscriptionDescCreatedAt := subscriptionFields[7].Descriptor()
+	subscriptionDescCreatedAt := subscriptionFields[6].Descriptor()
 	// subscription.DefaultCreatedAt holds the default value on creation for the created_at field.
 	subscription.DefaultCreatedAt = subscriptionDescCreatedAt.Default.(func() time.Time)
 	// subscriptionDescUpdatedAt is the schema descriptor for updated_at field.
-	subscriptionDescUpdatedAt := subscriptionFields[8].Descriptor()
+	subscriptionDescUpdatedAt := subscriptionFields[7].Descriptor()
 	// subscription.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	subscription.DefaultUpdatedAt = subscriptionDescUpdatedAt.Default.(func() time.Time)
 	// subscription.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -110,4 +111,24 @@ func init() {
 	subscriptionDescID := subscriptionFields[0].Descriptor()
 	// subscription.DefaultID holds the default value on creation for the id field.
 	subscription.DefaultID = subscriptionDescID.Default.(func() uuid.UUID)
+	userFields := schema.User{}.Fields()
+	_ = userFields
+	// userDescUsername is the schema descriptor for username field.
+	userDescUsername := userFields[2].Descriptor()
+	// user.DefaultUsername holds the default value on creation for the username field.
+	user.DefaultUsername = userDescUsername.Default.(func() string)
+	// userDescCreatedAt is the schema descriptor for created_at field.
+	userDescCreatedAt := userFields[7].Descriptor()
+	// user.DefaultCreatedAt holds the default value on creation for the created_at field.
+	user.DefaultCreatedAt = userDescCreatedAt.Default.(func() time.Time)
+	// userDescUpdatedAt is the schema descriptor for updated_at field.
+	userDescUpdatedAt := userFields[8].Descriptor()
+	// user.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	user.DefaultUpdatedAt = userDescUpdatedAt.Default.(func() time.Time)
+	// user.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	user.UpdateDefaultUpdatedAt = userDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// userDescID is the schema descriptor for id field.
+	userDescID := userFields[0].Descriptor()
+	// user.DefaultID holds the default value on creation for the id field.
+	user.DefaultID = userDescID.Default.(string)
 }

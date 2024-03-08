@@ -17,6 +17,7 @@ import (
 	"github.com/hackgame-org/fanclub_api/ent/post"
 	"github.com/hackgame-org/fanclub_api/ent/predicate"
 	"github.com/hackgame-org/fanclub_api/ent/subscription"
+	"github.com/hackgame-org/fanclub_api/ent/user"
 )
 
 // PostUpdate is the builder for updating Post entities.
@@ -29,20 +30,6 @@ type PostUpdate struct {
 // Where appends a list predicates to the PostUpdate builder.
 func (pu *PostUpdate) Where(ps ...predicate.Post) *PostUpdate {
 	pu.mutation.Where(ps...)
-	return pu
-}
-
-// SetUserID sets the "user_id" field.
-func (pu *PostUpdate) SetUserID(s string) *PostUpdate {
-	pu.mutation.SetUserID(s)
-	return pu
-}
-
-// SetNillableUserID sets the "user_id" field if the given value is not nil.
-func (pu *PostUpdate) SetNillableUserID(s *string) *PostUpdate {
-	if s != nil {
-		pu.SetUserID(*s)
-	}
 	return pu
 }
 
@@ -155,6 +142,40 @@ func (pu *PostUpdate) SetUpdatedAt(t time.Time) *PostUpdate {
 	return pu
 }
 
+// SetUserID sets the "user" edge to the User entity by ID.
+func (pu *PostUpdate) SetUserID(id string) *PostUpdate {
+	pu.mutation.SetUserID(id)
+	return pu
+}
+
+// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
+func (pu *PostUpdate) SetNillableUserID(id *string) *PostUpdate {
+	if id != nil {
+		pu = pu.SetUserID(*id)
+	}
+	return pu
+}
+
+// SetUser sets the "user" edge to the User entity.
+func (pu *PostUpdate) SetUser(u *User) *PostUpdate {
+	return pu.SetUserID(u.ID)
+}
+
+// AddSubscriptionIDs adds the "subscriptions" edge to the Subscription entity by IDs.
+func (pu *PostUpdate) AddSubscriptionIDs(ids ...uuid.UUID) *PostUpdate {
+	pu.mutation.AddSubscriptionIDs(ids...)
+	return pu
+}
+
+// AddSubscriptions adds the "subscriptions" edges to the Subscription entity.
+func (pu *PostUpdate) AddSubscriptions(s ...*Subscription) *PostUpdate {
+	ids := make([]uuid.UUID, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return pu.AddSubscriptionIDs(ids...)
+}
+
 // AddCategoryIDs adds the "categories" edge to the Category entity by IDs.
 func (pu *PostUpdate) AddCategoryIDs(ids ...uuid.UUID) *PostUpdate {
 	pu.mutation.AddCategoryIDs(ids...)
@@ -185,24 +206,36 @@ func (pu *PostUpdate) AddAssets(a ...*Asset) *PostUpdate {
 	return pu.AddAssetIDs(ids...)
 }
 
-// AddSubscriptionIDs adds the "subscriptions" edge to the Subscription entity by IDs.
-func (pu *PostUpdate) AddSubscriptionIDs(ids ...uuid.UUID) *PostUpdate {
-	pu.mutation.AddSubscriptionIDs(ids...)
+// Mutation returns the PostMutation object of the builder.
+func (pu *PostUpdate) Mutation() *PostMutation {
+	return pu.mutation
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (pu *PostUpdate) ClearUser() *PostUpdate {
+	pu.mutation.ClearUser()
 	return pu
 }
 
-// AddSubscriptions adds the "subscriptions" edges to the Subscription entity.
-func (pu *PostUpdate) AddSubscriptions(s ...*Subscription) *PostUpdate {
+// ClearSubscriptions clears all "subscriptions" edges to the Subscription entity.
+func (pu *PostUpdate) ClearSubscriptions() *PostUpdate {
+	pu.mutation.ClearSubscriptions()
+	return pu
+}
+
+// RemoveSubscriptionIDs removes the "subscriptions" edge to Subscription entities by IDs.
+func (pu *PostUpdate) RemoveSubscriptionIDs(ids ...uuid.UUID) *PostUpdate {
+	pu.mutation.RemoveSubscriptionIDs(ids...)
+	return pu
+}
+
+// RemoveSubscriptions removes "subscriptions" edges to Subscription entities.
+func (pu *PostUpdate) RemoveSubscriptions(s ...*Subscription) *PostUpdate {
 	ids := make([]uuid.UUID, len(s))
 	for i := range s {
 		ids[i] = s[i].ID
 	}
-	return pu.AddSubscriptionIDs(ids...)
-}
-
-// Mutation returns the PostMutation object of the builder.
-func (pu *PostUpdate) Mutation() *PostMutation {
-	return pu.mutation
+	return pu.RemoveSubscriptionIDs(ids...)
 }
 
 // ClearCategories clears all "categories" edges to the Category entity.
@@ -245,27 +278,6 @@ func (pu *PostUpdate) RemoveAssets(a ...*Asset) *PostUpdate {
 		ids[i] = a[i].ID
 	}
 	return pu.RemoveAssetIDs(ids...)
-}
-
-// ClearSubscriptions clears all "subscriptions" edges to the Subscription entity.
-func (pu *PostUpdate) ClearSubscriptions() *PostUpdate {
-	pu.mutation.ClearSubscriptions()
-	return pu
-}
-
-// RemoveSubscriptionIDs removes the "subscriptions" edge to Subscription entities by IDs.
-func (pu *PostUpdate) RemoveSubscriptionIDs(ids ...uuid.UUID) *PostUpdate {
-	pu.mutation.RemoveSubscriptionIDs(ids...)
-	return pu
-}
-
-// RemoveSubscriptions removes "subscriptions" edges to Subscription entities.
-func (pu *PostUpdate) RemoveSubscriptions(s ...*Subscription) *PostUpdate {
-	ids := make([]uuid.UUID, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
-	}
-	return pu.RemoveSubscriptionIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -313,9 +325,6 @@ func (pu *PostUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			}
 		}
 	}
-	if value, ok := pu.mutation.UserID(); ok {
-		_spec.SetField(post.FieldUserID, field.TypeString, value)
-	}
 	if value, ok := pu.mutation.Title(); ok {
 		_spec.SetField(post.FieldTitle, field.TypeString, value)
 	}
@@ -345,6 +354,80 @@ func (pu *PostUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := pu.mutation.UpdatedAt(); ok {
 		_spec.SetField(post.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if pu.mutation.UserCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   post.UserTable,
+			Columns: []string{post.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.UserIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   post.UserTable,
+			Columns: []string{post.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if pu.mutation.SubscriptionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   post.SubscriptionsTable,
+			Columns: post.SubscriptionsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.RemovedSubscriptionsIDs(); len(nodes) > 0 && !pu.mutation.SubscriptionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   post.SubscriptionsTable,
+			Columns: post.SubscriptionsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.SubscriptionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   post.SubscriptionsTable,
+			Columns: post.SubscriptionsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if pu.mutation.CategoriesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -436,51 +519,6 @@ func (pu *PostUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if pu.mutation.SubscriptionsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   post.SubscriptionsTable,
-			Columns: post.SubscriptionsPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := pu.mutation.RemovedSubscriptionsIDs(); len(nodes) > 0 && !pu.mutation.SubscriptionsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   post.SubscriptionsTable,
-			Columns: post.SubscriptionsPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := pu.mutation.SubscriptionsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   post.SubscriptionsTable,
-			Columns: post.SubscriptionsPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
 	if n, err = sqlgraph.UpdateNodes(ctx, pu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{post.Label}
@@ -499,20 +537,6 @@ type PostUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *PostMutation
-}
-
-// SetUserID sets the "user_id" field.
-func (puo *PostUpdateOne) SetUserID(s string) *PostUpdateOne {
-	puo.mutation.SetUserID(s)
-	return puo
-}
-
-// SetNillableUserID sets the "user_id" field if the given value is not nil.
-func (puo *PostUpdateOne) SetNillableUserID(s *string) *PostUpdateOne {
-	if s != nil {
-		puo.SetUserID(*s)
-	}
-	return puo
 }
 
 // SetTitle sets the "title" field.
@@ -624,6 +648,40 @@ func (puo *PostUpdateOne) SetUpdatedAt(t time.Time) *PostUpdateOne {
 	return puo
 }
 
+// SetUserID sets the "user" edge to the User entity by ID.
+func (puo *PostUpdateOne) SetUserID(id string) *PostUpdateOne {
+	puo.mutation.SetUserID(id)
+	return puo
+}
+
+// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
+func (puo *PostUpdateOne) SetNillableUserID(id *string) *PostUpdateOne {
+	if id != nil {
+		puo = puo.SetUserID(*id)
+	}
+	return puo
+}
+
+// SetUser sets the "user" edge to the User entity.
+func (puo *PostUpdateOne) SetUser(u *User) *PostUpdateOne {
+	return puo.SetUserID(u.ID)
+}
+
+// AddSubscriptionIDs adds the "subscriptions" edge to the Subscription entity by IDs.
+func (puo *PostUpdateOne) AddSubscriptionIDs(ids ...uuid.UUID) *PostUpdateOne {
+	puo.mutation.AddSubscriptionIDs(ids...)
+	return puo
+}
+
+// AddSubscriptions adds the "subscriptions" edges to the Subscription entity.
+func (puo *PostUpdateOne) AddSubscriptions(s ...*Subscription) *PostUpdateOne {
+	ids := make([]uuid.UUID, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
+	}
+	return puo.AddSubscriptionIDs(ids...)
+}
+
 // AddCategoryIDs adds the "categories" edge to the Category entity by IDs.
 func (puo *PostUpdateOne) AddCategoryIDs(ids ...uuid.UUID) *PostUpdateOne {
 	puo.mutation.AddCategoryIDs(ids...)
@@ -654,24 +712,36 @@ func (puo *PostUpdateOne) AddAssets(a ...*Asset) *PostUpdateOne {
 	return puo.AddAssetIDs(ids...)
 }
 
-// AddSubscriptionIDs adds the "subscriptions" edge to the Subscription entity by IDs.
-func (puo *PostUpdateOne) AddSubscriptionIDs(ids ...uuid.UUID) *PostUpdateOne {
-	puo.mutation.AddSubscriptionIDs(ids...)
+// Mutation returns the PostMutation object of the builder.
+func (puo *PostUpdateOne) Mutation() *PostMutation {
+	return puo.mutation
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (puo *PostUpdateOne) ClearUser() *PostUpdateOne {
+	puo.mutation.ClearUser()
 	return puo
 }
 
-// AddSubscriptions adds the "subscriptions" edges to the Subscription entity.
-func (puo *PostUpdateOne) AddSubscriptions(s ...*Subscription) *PostUpdateOne {
+// ClearSubscriptions clears all "subscriptions" edges to the Subscription entity.
+func (puo *PostUpdateOne) ClearSubscriptions() *PostUpdateOne {
+	puo.mutation.ClearSubscriptions()
+	return puo
+}
+
+// RemoveSubscriptionIDs removes the "subscriptions" edge to Subscription entities by IDs.
+func (puo *PostUpdateOne) RemoveSubscriptionIDs(ids ...uuid.UUID) *PostUpdateOne {
+	puo.mutation.RemoveSubscriptionIDs(ids...)
+	return puo
+}
+
+// RemoveSubscriptions removes "subscriptions" edges to Subscription entities.
+func (puo *PostUpdateOne) RemoveSubscriptions(s ...*Subscription) *PostUpdateOne {
 	ids := make([]uuid.UUID, len(s))
 	for i := range s {
 		ids[i] = s[i].ID
 	}
-	return puo.AddSubscriptionIDs(ids...)
-}
-
-// Mutation returns the PostMutation object of the builder.
-func (puo *PostUpdateOne) Mutation() *PostMutation {
-	return puo.mutation
+	return puo.RemoveSubscriptionIDs(ids...)
 }
 
 // ClearCategories clears all "categories" edges to the Category entity.
@@ -714,27 +784,6 @@ func (puo *PostUpdateOne) RemoveAssets(a ...*Asset) *PostUpdateOne {
 		ids[i] = a[i].ID
 	}
 	return puo.RemoveAssetIDs(ids...)
-}
-
-// ClearSubscriptions clears all "subscriptions" edges to the Subscription entity.
-func (puo *PostUpdateOne) ClearSubscriptions() *PostUpdateOne {
-	puo.mutation.ClearSubscriptions()
-	return puo
-}
-
-// RemoveSubscriptionIDs removes the "subscriptions" edge to Subscription entities by IDs.
-func (puo *PostUpdateOne) RemoveSubscriptionIDs(ids ...uuid.UUID) *PostUpdateOne {
-	puo.mutation.RemoveSubscriptionIDs(ids...)
-	return puo
-}
-
-// RemoveSubscriptions removes "subscriptions" edges to Subscription entities.
-func (puo *PostUpdateOne) RemoveSubscriptions(s ...*Subscription) *PostUpdateOne {
-	ids := make([]uuid.UUID, len(s))
-	for i := range s {
-		ids[i] = s[i].ID
-	}
-	return puo.RemoveSubscriptionIDs(ids...)
 }
 
 // Where appends a list predicates to the PostUpdate builder.
@@ -812,9 +861,6 @@ func (puo *PostUpdateOne) sqlSave(ctx context.Context) (_node *Post, err error) 
 			}
 		}
 	}
-	if value, ok := puo.mutation.UserID(); ok {
-		_spec.SetField(post.FieldUserID, field.TypeString, value)
-	}
 	if value, ok := puo.mutation.Title(); ok {
 		_spec.SetField(post.FieldTitle, field.TypeString, value)
 	}
@@ -844,6 +890,80 @@ func (puo *PostUpdateOne) sqlSave(ctx context.Context) (_node *Post, err error) 
 	}
 	if value, ok := puo.mutation.UpdatedAt(); ok {
 		_spec.SetField(post.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if puo.mutation.UserCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   post.UserTable,
+			Columns: []string{post.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.UserIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   post.UserTable,
+			Columns: []string{post.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if puo.mutation.SubscriptionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   post.SubscriptionsTable,
+			Columns: post.SubscriptionsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.RemovedSubscriptionsIDs(); len(nodes) > 0 && !puo.mutation.SubscriptionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   post.SubscriptionsTable,
+			Columns: post.SubscriptionsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.SubscriptionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   post.SubscriptionsTable,
+			Columns: post.SubscriptionsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if puo.mutation.CategoriesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -928,51 +1048,6 @@ func (puo *PostUpdateOne) sqlSave(ctx context.Context) (_node *Post, err error) 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(asset.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if puo.mutation.SubscriptionsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   post.SubscriptionsTable,
-			Columns: post.SubscriptionsPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := puo.mutation.RemovedSubscriptionsIDs(); len(nodes) > 0 && !puo.mutation.SubscriptionsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   post.SubscriptionsTable,
-			Columns: post.SubscriptionsPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := puo.mutation.SubscriptionsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   post.SubscriptionsTable,
-			Columns: post.SubscriptionsPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
