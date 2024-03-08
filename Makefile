@@ -6,6 +6,10 @@ model:
 generate:
 	cd src; go generate ./ent
 
+# Run unit tests
+test:
+	cd src/tests && go test -v ./...
+
 # Start the docker container and orchestrate containers
 start:
 	docker compose up -d
@@ -13,3 +17,7 @@ start:
 # Stop the docker container
 stop:
 	docker compose down
+
+# Launch ngrok and listen to webhooks
+listen:
+	ngrok http 8080
