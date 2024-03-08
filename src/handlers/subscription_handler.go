@@ -1,12 +1,11 @@
 package handlers
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/google/uuid"
 	"github.com/hackgame-org/fanclub_api/ent"
-	"github.com/hackgame-org/fanclub_api/ent/subscription"
+	"github.com/hackgame-org/fanclub_api/ent/user"
 	"github.com/hackgame-org/fanclub_api/requests"
 	"github.com/labstack/echo/v4"
 )
@@ -33,32 +32,36 @@ func (h SubscriptionHandler) CreateSubscription(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err)
 	}
 
-	// Insert a new subscription data
-	res, err := h.db.Subscription.
-		Create().
-		SetName(req.Name).
-		SetUserID(req.UserID).
-		SetDescription(*req.Description).
-		SetPrice(*req.Price).
-		SetTrialPeriodDays(*req.TrialPeriod).
-		SetIsArchived(req.IsArchived).
-		Save(context.Background())
+	user, err := h.db.User.Query().Where(user.ID(req.UserID)).Only(c.Request().Context())
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
 
-	return c.JSON(http.StatusCreated, res)
+	// Insert a new subscription data
+	sub, err := h.db.Subscription.
+		Create().
+		SetUser(user).
+		SetName(req.Name).
+		SetDescription(*req.Description).
+		SetPrice(*req.Price).
+		SetTrialPeriodDays(*req.TrialPeriod).
+		SetIsArchived(req.IsArchived).
+		Save(c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err)
+	}
+
+	return c.JSON(http.StatusCreated, sub)
 }
 
 func (h SubscriptionHandler) GetSubscriptions(c echo.Context) error {
 	// Get user id from query parameter
 	userID := c.QueryParam("user_id")
 
-	// Get subscriptions for a user with user id 
-	res, err := h.db.Subscription.
-		Query().
-		Where(subscription.UserID(userID)).
-		All(context.Background())
+	// Get subscriptions for a user with user id
+	res, err := h.db.User.
+		QuerySubscriptions(h.db.User.GetX(c.Request().Context(), userID)).
+		All(c.Request().Context())
 	if err != nil {
 		return echo.ErrInternalServerError
 	}
@@ -78,8 +81,8 @@ func (h PostHandler) GetSubscription(c echo.Context) error {
 
 	//
 	res, err := h.db.Subscription.
-		QueryPosts(h.db.Subscription.GetX(context.Background(), subscriptionUUID)).
-		All(context.Background())
+		QueryPosts(h.db.Subscription.GetX(c.Request().Context(), subscriptionUUID)).
+		All(c.Request().Context())
 
 	if err != nil {
 		return echo.ErrInternalServerError
@@ -117,7 +120,7 @@ func (h SubscriptionHandler) UpdateSubscription(c echo.Context) error {
 		SetPrice(*req.Price).
 		SetTrialPeriodDays(*req.TrialPeriod).
 		SetIsArchived(req.IsArchived).
-		Save(context.Background())
+		Save(c.Request().Context())
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
@@ -138,7 +141,7 @@ func (h SubscriptionHandler) DeleteSubscription(c echo.Context) error {
 	// Delete the subscription with subscription id
 	if err := h.db.Subscription.
 		DeleteOneID(subscriptionUUID).
-		Exec(context.Background()); err != nil {
+		Exec(c.Request().Context()); err != nil {
 		return c.String(http.StatusInternalServerError, "Failed to delete subscription")
 	}
 
