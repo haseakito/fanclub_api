@@ -1,12 +1,12 @@
 package handlers
 
 import (
-	"context"
 	"net/http"
 	"strconv"
 
 	"github.com/hackgame-org/fanclub_api/ent"
-	"github.com/hackgame-org/fanclub_api/ent/post"
+	"github.com/hackgame-org/fanclub_api/ent/user"
+	"github.com/hackgame-org/fanclub_api/requests"
 	"github.com/labstack/echo/v4"
 )
 
@@ -21,12 +21,51 @@ func NewUserHandler(db *ent.Client) *UserHandler {
 }
 
 func (h UserHandler) GetUsers(c echo.Context) error {
-	return nil
+	// Get limit from query parameter
+	limitStr := c.QueryParam("limit")
+	// Convert the limit from string to int
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "Failed to parse pagination limit")
+	}
+
+	// Get offset from query parameter
+	offsetStr := c.QueryParam("offset")
+	// Convert the offset from string to int
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "Failed to parse pagination offset")
+	}
+
+	// Query posts with limit and offset
+	users, err := h.db.User.
+		Query().
+		Limit(limit).
+		Offset(offset).
+		All(c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, users)
+	}
+
+	return c.JSON(http.StatusOK, users)
 }
 
-// TODO: return user info with subscriptions
 func (h UserHandler) GetUser(c echo.Context) error {
-	return nil
+	// Get user id from request parameter
+	userID := c.Param("id")
+
+	// Query user with user id
+	user, err := h.db.User.
+		Query().
+		Where(user.ID(userID)).
+		WithPosts(func(pq *ent.PostQuery) {pq.Limit(6)}).
+		WithSubscriptions().
+		Only(c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, user)
+	}
+
+	return c.JSON(http.StatusOK, user)
 }
 
 func (h UserHandler) GetPostsByUserID(c echo.Context) error {
@@ -50,18 +89,42 @@ func (h UserHandler) GetPostsByUserID(c echo.Context) error {
 	}
 
 	// Query posts by user id with limit and offset
-	res, err := h.db.Post.
-		Query().
-		Where(post.UserID(userID)).
+	posts, err := h.db.User.
+		QueryPosts(h.db.User.GetX(c.Request().Context(), userID)).
 		Limit(limit).
 		Offset(offset).
-		All(context.Background())
-
+		All(c.Request().Context())
 	if err != nil {
-		if ent.IsNotFound(err) {
-			return echo.ErrNotFound
-		}
-		return echo.ErrInternalServerError
+		return c.JSON(http.StatusInternalServerError, err)
 	}
-	return c.JSON(http.StatusOK, res)
+	return c.JSON(http.StatusOK, posts)
+}
+
+func (h UserHandler) UpdateUser(c echo.Context) error {
+	// Get user id from request parameter
+	userID := c.Param("id")
+
+	// Bind the request data to UserRequest
+	var req requests.UserRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, err)
+	}
+
+	// Validate request data
+	if err := req.Validate(); err != nil {
+		return c.JSON(http.StatusBadRequest, err)
+	}
+
+	// Update fields
+	user, err := h.db.User.
+		UpdateOneID(userID).
+		SetUsername(req.Username).
+		SetBio(req.Bio).
+		SetURL(req.Url).
+		Save(c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err)
+	}
+
+	return c.JSON(http.StatusOK, user)
 }
