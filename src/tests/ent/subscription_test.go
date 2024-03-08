@@ -22,15 +22,33 @@ func TestCreateSubscription(t *testing.T) {
 	err := client.Schema.Create(ctx)
 	require.NoError(t, err)
 
+	// Start a new transaction
+	tx, err := client.Tx(ctx)
+	require.NoError(t, err)
+	defer tx.Rollback()
+
+	// Insert a new user
+	user, err := tx.User.
+		Create().
+		SetID("test-id").
+		SetName("test user").
+		SetEmail("example@example.com").
+		Save(ctx)
+	require.NoError(t, err)
+
 	// Insert test data
-	sub, err := client.Subscription.
+	sub, err := tx.Subscription.
 		Create().
 		SetName("test subscription").
-		SetUserID("test-user-id").
+		SetUser(user).
 		SetDescription("").
 		SetPrice(0).
 		SetTrialPeriodDays(0).
 		Save(ctx)
+	require.NoError(t, err)
+
+	// Commit the transaction
+	err = tx.Commit()
 	require.NoError(t, err)
 
 	// Assert that the returned subscription is not nil
@@ -50,6 +68,60 @@ func TestGetSubscriptions(t *testing.T) {
 	// Create the schema
 	err := client.Schema.Create(ctx)
 	require.NoError(t, err)
+
+	// Start a new transaction
+	tx, err := client.Tx(ctx)
+	require.NoError(t, err)
+	defer tx.Rollback()
+
+	// Insert a new user
+	user, err := tx.User.
+		Create().
+		SetID("test-id").
+		SetName("test user").
+		SetEmail("example@example.com").
+		Save(ctx)
+	require.NoError(t, err)
+
+	// Generate known UUIDs for the subscription
+	subUUID1 := uuid.New()
+	subUUID2 := uuid.New()
+
+	_, err = tx.Subscription.
+		CreateBulk(
+			tx.Subscription.
+				Create().
+				SetID(subUUID1).
+				SetName("test subscription 1").
+				SetUser(user).
+				SetDescription("").
+				SetPrice(0).
+				SetTrialPeriodDays(0),
+			tx.Subscription.
+				Create().
+				SetID(subUUID2).
+				SetName("test subscription 2").
+				SetUser(user).
+				SetDescription("").
+				SetPrice(0).
+				SetTrialPeriodDays(0),
+		).
+		Save(ctx)
+	require.NoError(t, err)
+
+	// Commit the transaction
+	err = tx.Commit()
+	require.NoError(t, err)
+
+	subs, err := client.Subscription.Query().All(ctx)
+	require.NoError(t, err)
+
+	// Assert that the returned subscriptions is not nil
+	require.NotNil(t, subs)
+
+	// Assert that the returned subscription title matches the expected title
+	assert.Equal(t, "test subscription 1", subs[0].Name)	
+	assert.Equal(t, "test subscription 2", subs[1].Name)
 }
 
 func TestGetSubscription(t *testing.T) {
@@ -63,19 +135,37 @@ func TestGetSubscription(t *testing.T) {
 	err := client.Schema.Create(ctx)
 	require.NoError(t, err)
 
+	// Start a new transaction
+	tx, err := client.Tx(ctx)
+	require.NoError(t, err)
+	defer tx.Rollback()
+
+	// Insert a new user
+	user, err := tx.User.
+		Create().
+		SetID("test-id").
+		SetName("test user").
+		SetEmail("example@example.com").
+		Save(ctx)
+	require.NoError(t, err)
+
 	// Generate a known UUID for the subscription
 	subUUID := uuid.New()
 
 	// Insert test data
-	_, err = client.Subscription.
+	_, err = tx.Subscription.
 		Create().
 		SetID(subUUID).
 		SetName("test subscription").
-		SetUserID("test-user-id").
+		SetUser(user).
 		SetDescription("").
 		SetPrice(0).
 		SetTrialPeriodDays(0).
 		Save(ctx)
+	require.NoError(t, err)
+
+	// Commit the transaction
+	err = tx.Commit()
 	require.NoError(t, err)
 
 	// Get the subscription with subscription id
@@ -102,15 +192,29 @@ func TestUpdateSubscription(t *testing.T) {
 	err := client.Schema.Create(ctx)
 	require.NoError(t, err)
 
+	// Start a new transaction
+	tx, err := client.Tx(ctx)
+	require.NoError(t, err)
+	defer tx.Rollback()
+
+	// Insert a new user
+	user, err := tx.User.
+		Create().
+		SetID("test-id").
+		SetName("test user").
+		SetEmail("example@example.com").
+		Save(ctx)
+	require.NoError(t, err)
+
 	// Generate a known UUID for the subscription
 	subUUID := uuid.New()
 
 	// Insert test data
-	_, err = client.Subscription.
+	_, err = tx.Subscription.
 		Create().
 		SetID(subUUID).
 		SetName("test subscription").
-		SetUserID("test-user-id").
+		SetUser(user).
 		SetDescription("").
 		SetPrice(0).
 		SetTrialPeriodDays(0).
@@ -118,11 +222,15 @@ func TestUpdateSubscription(t *testing.T) {
 	require.NoError(t, err)
 
 	// Update the test data with subscription id
-	sub, err := client.Subscription.
+	sub, err := tx.Subscription.
 		UpdateOneID(subUUID).
 		SetName("modified test subscription").
 		SetDescription("modified test description").
 		Save(ctx)
+	require.NoError(t, err)
+
+	// Commit the transaction
+	err = tx.Commit()
 	require.NoError(t, err)
 
 	// Assert that the returned subscription is not nil
@@ -145,15 +253,29 @@ func TestDelete(t *testing.T) {
 	err := client.Schema.Create(ctx)
 	require.NoError(t, err)
 
+	// Start a new transaction
+	tx, err := client.Tx(ctx)
+	require.NoError(t, err)
+	defer tx.Rollback()
+
+	// Insert a new user
+	user, err := tx.User.
+		Create().
+		SetID("test-id").
+		SetName("test user").
+		SetEmail("example@example.com").
+		Save(ctx)
+	require.NoError(t, err)
+
 	// Generate a known UUID for the subscription
 	subUUID := uuid.New()
 
 	// Insert test data
-	_, err = client.Subscription.
+	_, err = tx.Subscription.
 		Create().
 		SetID(subUUID).
 		SetName("test subscription").
-		SetUserID("test-user-id").
+		SetUser(user).
 		SetDescription("").
 		SetPrice(0).
 		SetTrialPeriodDays(0).
@@ -161,8 +283,12 @@ func TestDelete(t *testing.T) {
 	require.NoError(t, err)
 
 	// Delete the test data with subscription id
-	err = client.Subscription.
+	err = tx.Subscription.
 		DeleteOneID(subUUID).
 		Exec(ctx)
+	require.NoError(t, err)
+
+	// Commit the transaction
+	err = tx.Commit()
 	require.NoError(t, err)
 }
