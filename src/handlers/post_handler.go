@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/hackgame-org/fanclub_api/ent"
 	"github.com/hackgame-org/fanclub_api/ent/asset"
+	"github.com/hackgame-org/fanclub_api/ent/like"
 	"github.com/hackgame-org/fanclub_api/ent/post"
 	"github.com/hackgame-org/fanclub_api/requests"
 	"github.com/labstack/echo/v4"
@@ -177,7 +178,7 @@ func (h PostHandler) GetPostByID(c echo.Context) error {
 	}
 
 	// Query the post with post id
-	res, err := h.db.Post.
+	postData, err := h.db.Post.
 		Query().
 		Where(post.ID(postUUID)).
 		WithCategories().
@@ -188,6 +189,27 @@ func (h PostHandler) GetPostByID(c echo.Context) error {
 			return echo.ErrNotFound
 		}
 		return echo.ErrInternalServerError
+	}
+
+	// Query total likes for the post
+	likeCount, err := h.db.Like.
+		Query().
+		Where(like.HasPostWith(post.ID(postUUID))).
+		Count(c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err)
+	}
+
+	// Create a response structure that includes the post and the like count
+	type PostResponse struct {
+		Post      *ent.Post `json:"post"`
+		LikeCount int       `json:"likes"`
+	}
+
+	// Create the response object
+	res := PostResponse{
+		Post:      postData,
+		LikeCount: likeCount,
 	}
 
 	return c.JSON(http.StatusOK, res)
@@ -224,7 +246,7 @@ func (h PostHandler) UpdatePost(c echo.Context) error {
 	// Update fields with data provided
 	res, err := tx.Post.
 		UpdateOneID(postUUID).
-		SetTitle(req.Title).		
+		SetTitle(req.Title).
 		SetDescription(*req.Description).
 		SetPrice(*req.Price).
 		SetIsFeatured(req.IsFeatured).
