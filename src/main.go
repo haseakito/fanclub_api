@@ -69,6 +69,24 @@ func main() {
 		p.DELETE("/:id/assets/:asset_id", ph.DeleteFile)
 	}
 
+	// Likes group APIs
+	l := r.Group("/likes")
+	{
+		lh := handlers.NewLikeHandler(db)
+
+		l.POST("/create", lh.CreateLike)
+		l.POST("/delete", lh.DeleteLike)
+	}
+
+	// Follows group APIs
+	f := r.Group("/follows")
+	{
+		fh := handlers.NewFollowHandler(db)
+
+		f.POST("/create", fh.CreateFollow)
+		f.POST("/delete", fh.DeleteFollow)
+	}
+
 	// Categories group APIs
 	c := r.Group("/categories")
 	{
