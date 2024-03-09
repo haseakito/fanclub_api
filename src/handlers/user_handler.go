@@ -20,6 +20,18 @@ func NewUserHandler(db *ent.Client) *UserHandler {
 	}
 }
 
+func (h UserHandler) FollowUser(c echo.Context) error {
+	// Get user id from request parameter
+	userID := c.Param("id")
+
+
+	h.db.User.
+		UpdateOneID(userID).
+		Save(c.Request().Context())
+
+	return nil
+}
+
 func (h UserHandler) GetUsers(c echo.Context) error {
 	// Get limit from query parameter
 	limitStr := c.QueryParam("limit")
@@ -58,14 +70,44 @@ func (h UserHandler) GetUser(c echo.Context) error {
 	user, err := h.db.User.
 		Query().
 		Where(user.ID(userID)).
-		WithPosts(func(pq *ent.PostQuery) {pq.Limit(6)}).
+		WithPosts(func(pq *ent.PostQuery) { pq.Limit(6) }).
 		WithSubscriptions().
 		Only(c.Request().Context())
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, user)
 	}
 
-	return c.JSON(http.StatusOK, user)
+	// Query followers count
+	followersCount, err := h.db.User.
+		QueryFollowers(user).
+		Count(c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, user)
+	}
+
+	// Query followers count
+	followingCount, err := h.db.User.
+		QueryFollowing(user).
+		Count(c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, user)
+	}
+
+	// Create a response structure that includes the user and the following and followers count
+	type UserResponse struct {
+		User           *ent.User `json:"user"`
+		FollowingCount int       `json:"following"`
+		FollowersCount int       `json:"followers"`
+	}
+
+	// Create the response object
+	res := UserResponse{
+		User:           user,
+		FollowingCount: followingCount,
+		FollowersCount: followersCount,
+	}
+
+	return c.JSON(http.StatusOK, res)
 }
 
 func (h UserHandler) GetPostsByUserID(c echo.Context) error {
