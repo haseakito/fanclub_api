@@ -1,9 +1,7 @@
 package ent_test
 
 import (
-	"context"
-	"math/rand"
-	"strconv"
+	"context"	
 	"testing"
 
 	"github.com/google/uuid"
@@ -98,7 +96,7 @@ func TestDeleteLike(t *testing.T) {
 	require.NoError(t, err)
 
 	// Generate a know ID for user
-	userID := strconv.Itoa(rand.Intn(1000))
+	userID := uuid.NewString()
 	// Generate a known UUID for the post
 	postUUID := uuid.New()
 	// Generate a known UUID for the like
