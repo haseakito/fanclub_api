@@ -41,32 +41,47 @@ func (h LikeHandler) CreateLike(c echo.Context) error {
 		return echo.ErrBadRequest
 	}
 
-	// Query the post with post id
-	post, err := h.db.Post.
+	// Query the like with user id and post id
+	_, err = h.db.Like.
 		Query().
-		Where(post.ID(postUUID)).
-		WithUser().
-		Only(c.Request().Context())
+		Where(like.HasPostWith(post.ID(postUUID))).
+		Where(like.HasUserWith(user.ID(req.UserID))).
+		First(c.Request().Context())
 	if err != nil {
+		// If there is no like associated with user id and post id, then proceed to make a new one
+		if ent.IsNotFound(err) {
+			// Query the post with post id
+			postData, err := h.db.Post.
+				Query().
+				Where(post.ID(postUUID)).
+				WithUser().
+				Only(c.Request().Context())
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, err)
+			}
+
+			// If the post is owned by the user, then throw an error
+			if postData.Edges.User.ID == req.UserID {
+				return c.String(http.StatusUnauthorized, "Unauthorized to perform this operation")
+			}
+
+			// Insert a new like with user id and post id
+			_, err = h.db.Like.
+				Create().
+				SetUser(h.db.User.GetX(c.Request().Context(), req.UserID)).
+				SetPost(postData).
+				Save(c.Request().Context())
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, err)
+			}
+
+			return c.JSON(http.StatusCreated, "Successfully liked the post")
+		}
+
 		return c.JSON(http.StatusInternalServerError, err)
 	}
 
-	//
-	// if post.Edges.User.ID == req.UserID {
-	// 	return c.String(http.StatusUnauthorized, "Unauthorized to perform this operation")
-	// }
-
-	//
-	like, err := h.db.Like.
-		Create().
-		SetUser(h.db.User.GetX(c.Request().Context(), req.UserID)).
-		SetPost(post).
-		Save(c.Request().Context())
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
-	}
-
-	return c.JSON(http.StatusCreated, like)
+	return c.JSON(http.StatusCreated, "Already liked the post")
 }
 
 // TODO: Add middleware and check if the user id matches
