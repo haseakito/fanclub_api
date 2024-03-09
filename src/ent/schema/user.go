@@ -21,7 +21,7 @@ func (User) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("id").Default(uuid.NewString()),
 		field.String("name"),
-		field.String("username").DefaultFunc(GetRamdomUsername),
+		field.String("username").Default(uuid.NewString()),
 		field.String("url").Optional(),
 		field.String("email").Unique(),
 		field.Text("bio").Optional(),
@@ -38,6 +38,9 @@ func (User) Edges() []ent.Edge {
 	return []ent.Edge{
 		// Has-many relationship to post
 		edge.To("posts", Post.Type),
+
+		// Has-many relationship to like
+		edge.To("likes", Like.Type),
 
 		// Has-many relationship to subscriptions
 		edge.To("subscriptions", Subscription.Type),

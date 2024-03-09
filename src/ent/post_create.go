@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/hackgame-org/fanclub_api/ent/asset"
 	"github.com/hackgame-org/fanclub_api/ent/category"
+	"github.com/hackgame-org/fanclub_api/ent/like"
 	"github.com/hackgame-org/fanclub_api/ent/post"
 	"github.com/hackgame-org/fanclub_api/ent/subscription"
 	"github.com/hackgame-org/fanclub_api/ent/user"
@@ -161,6 +162,21 @@ func (pc *PostCreate) AddSubscriptions(s ...*Subscription) *PostCreate {
 		ids[i] = s[i].ID
 	}
 	return pc.AddSubscriptionIDs(ids...)
+}
+
+// AddLikeIDs adds the "likes" edge to the Like entity by IDs.
+func (pc *PostCreate) AddLikeIDs(ids ...uuid.UUID) *PostCreate {
+	pc.mutation.AddLikeIDs(ids...)
+	return pc
+}
+
+// AddLikes adds the "likes" edges to the Like entity.
+func (pc *PostCreate) AddLikes(l ...*Like) *PostCreate {
+	ids := make([]uuid.UUID, len(l))
+	for i := range l {
+		ids[i] = l[i].ID
+	}
+	return pc.AddLikeIDs(ids...)
 }
 
 // AddCategoryIDs adds the "categories" edge to the Category entity by IDs.
@@ -356,6 +372,22 @@ func (pc *PostCreate) createSpec() (*Post, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(subscription.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := pc.mutation.LikesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   post.LikesTable,
+			Columns: []string{post.LikesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(like.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

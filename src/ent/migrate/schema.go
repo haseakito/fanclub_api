@@ -66,6 +66,40 @@ var (
 		Columns:    CategoriesColumns,
 		PrimaryKey: []*schema.Column{CategoriesColumns[0]},
 	}
+	// LikesColumns holds the columns for the "likes" table.
+	LikesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "post_id", Type: field.TypeUUID, Nullable: true},
+		{Name: "user_id", Type: field.TypeString, Nullable: true, Default: "184fb9f1-bf3e-4db1-8947-9208f74951c7"},
+	}
+	// LikesTable holds the schema information for the "likes" table.
+	LikesTable = &schema.Table{
+		Name:       "likes",
+		Columns:    LikesColumns,
+		PrimaryKey: []*schema.Column{LikesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "likes_posts_likes",
+				Columns:    []*schema.Column{LikesColumns[2]},
+				RefColumns: []*schema.Column{PostsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "likes_users_likes",
+				Columns:    []*schema.Column{LikesColumns[3]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "like_post_id_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{LikesColumns[2], LikesColumns[3]},
+			},
+		},
+	}
 	// PostsColumns holds the columns for the "posts" table.
 	PostsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
@@ -122,7 +156,7 @@ var (
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
 		{Name: "name", Type: field.TypeString},
-		{Name: "username", Type: field.TypeString},
+		{Name: "username", Type: field.TypeString, Default: "b00e3477-de5e-4391-a979-6e9b2fecf9aa"},
 		{Name: "url", Type: field.TypeString, Nullable: true},
 		{Name: "email", Type: field.TypeString, Unique: true},
 		{Name: "bio", Type: field.TypeString, Nullable: true, Size: 2147483647},
@@ -191,6 +225,7 @@ var (
 		AssetsTable,
 		BillboardsTable,
 		CategoriesTable,
+		LikesTable,
 		PostsTable,
 		SubscriptionsTable,
 		UsersTable,
@@ -202,6 +237,8 @@ var (
 func init() {
 	AssetsTable.ForeignKeys[0].RefTable = BillboardsTable
 	AssetsTable.ForeignKeys[1].RefTable = PostsTable
+	LikesTable.ForeignKeys[0].RefTable = PostsTable
+	LikesTable.ForeignKeys[1].RefTable = UsersTable
 	PostsTable.ForeignKeys[0].RefTable = UsersTable
 	SubscriptionsTable.ForeignKeys[0].RefTable = UsersTable
 	PostCategoriesTable.ForeignKeys[0].RefTable = PostsTable

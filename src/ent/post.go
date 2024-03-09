@@ -46,13 +46,15 @@ type PostEdges struct {
 	User *User `json:"user,omitempty"`
 	// Subscriptions holds the value of the subscriptions edge.
 	Subscriptions []*Subscription `json:"subscriptions,omitempty"`
+	// Likes holds the value of the likes edge.
+	Likes []*Like `json:"likes,omitempty"`
 	// Categories holds the value of the categories edge.
 	Categories []*Category `json:"categories,omitempty"`
 	// Assets holds the value of the assets edge.
 	Assets []*Asset `json:"assets,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [5]bool
 }
 
 // UserOrErr returns the User value or an error if the edge
@@ -75,10 +77,19 @@ func (e PostEdges) SubscriptionsOrErr() ([]*Subscription, error) {
 	return nil, &NotLoadedError{edge: "subscriptions"}
 }
 
+// LikesOrErr returns the Likes value or an error if the edge
+// was not loaded in eager-loading.
+func (e PostEdges) LikesOrErr() ([]*Like, error) {
+	if e.loadedTypes[2] {
+		return e.Likes, nil
+	}
+	return nil, &NotLoadedError{edge: "likes"}
+}
+
 // CategoriesOrErr returns the Categories value or an error if the edge
 // was not loaded in eager-loading.
 func (e PostEdges) CategoriesOrErr() ([]*Category, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[3] {
 		return e.Categories, nil
 	}
 	return nil, &NotLoadedError{edge: "categories"}
@@ -87,7 +98,7 @@ func (e PostEdges) CategoriesOrErr() ([]*Category, error) {
 // AssetsOrErr returns the Assets value or an error if the edge
 // was not loaded in eager-loading.
 func (e PostEdges) AssetsOrErr() ([]*Asset, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[4] {
 		return e.Assets, nil
 	}
 	return nil, &NotLoadedError{edge: "assets"}
@@ -203,6 +214,11 @@ func (po *Post) QueryUser() *UserQuery {
 // QuerySubscriptions queries the "subscriptions" edge of the Post entity.
 func (po *Post) QuerySubscriptions() *SubscriptionQuery {
 	return NewPostClient(po.config).QuerySubscriptions(po)
+}
+
+// QueryLikes queries the "likes" edge of the Post entity.
+func (po *Post) QueryLikes() *LikeQuery {
+	return NewPostClient(po.config).QueryLikes(po)
 }
 
 // QueryCategories queries the "categories" edge of the Post entity.

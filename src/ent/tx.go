@@ -18,6 +18,8 @@ type Tx struct {
 	Billboard *BillboardClient
 	// Category is the client for interacting with the Category builders.
 	Category *CategoryClient
+	// Like is the client for interacting with the Like builders.
+	Like *LikeClient
 	// Post is the client for interacting with the Post builders.
 	Post *PostClient
 	// Subscription is the client for interacting with the Subscription builders.
@@ -158,6 +160,7 @@ func (tx *Tx) init() {
 	tx.Asset = NewAssetClient(tx.config)
 	tx.Billboard = NewBillboardClient(tx.config)
 	tx.Category = NewCategoryClient(tx.config)
+	tx.Like = NewLikeClient(tx.config)
 	tx.Post = NewPostClient(tx.config)
 	tx.Subscription = NewSubscriptionClient(tx.config)
 	tx.User = NewUserClient(tx.config)

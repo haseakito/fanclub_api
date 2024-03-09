@@ -9,6 +9,7 @@ import (
 	"github.com/hackgame-org/fanclub_api/ent/asset"
 	"github.com/hackgame-org/fanclub_api/ent/billboard"
 	"github.com/hackgame-org/fanclub_api/ent/category"
+	"github.com/hackgame-org/fanclub_api/ent/like"
 	"github.com/hackgame-org/fanclub_api/ent/post"
 	"github.com/hackgame-org/fanclub_api/ent/schema"
 	"github.com/hackgame-org/fanclub_api/ent/subscription"
@@ -67,6 +68,24 @@ func init() {
 	categoryDescID := categoryFields[0].Descriptor()
 	// category.DefaultID holds the default value on creation for the id field.
 	category.DefaultID = categoryDescID.Default.(func() uuid.UUID)
+	likeFields := schema.Like{}.Fields()
+	_ = likeFields
+	// likeDescPostID is the schema descriptor for post_id field.
+	likeDescPostID := likeFields[1].Descriptor()
+	// like.DefaultPostID holds the default value on creation for the post_id field.
+	like.DefaultPostID = likeDescPostID.Default.(func() uuid.UUID)
+	// likeDescUserID is the schema descriptor for user_id field.
+	likeDescUserID := likeFields[2].Descriptor()
+	// like.DefaultUserID holds the default value on creation for the user_id field.
+	like.DefaultUserID = likeDescUserID.Default.(string)
+	// likeDescCreatedAt is the schema descriptor for created_at field.
+	likeDescCreatedAt := likeFields[3].Descriptor()
+	// like.DefaultCreatedAt holds the default value on creation for the created_at field.
+	like.DefaultCreatedAt = likeDescCreatedAt.Default.(func() time.Time)
+	// likeDescID is the schema descriptor for id field.
+	likeDescID := likeFields[0].Descriptor()
+	// like.DefaultID holds the default value on creation for the id field.
+	like.DefaultID = likeDescID.Default.(func() uuid.UUID)
 	postFields := schema.Post{}.Fields()
 	_ = postFields
 	// postDescIsFeatured is the schema descriptor for is_featured field.
@@ -116,7 +135,7 @@ func init() {
 	// userDescUsername is the schema descriptor for username field.
 	userDescUsername := userFields[2].Descriptor()
 	// user.DefaultUsername holds the default value on creation for the username field.
-	user.DefaultUsername = userDescUsername.Default.(func() string)
+	user.DefaultUsername = userDescUsername.Default.(string)
 	// userDescCreatedAt is the schema descriptor for created_at field.
 	userDescCreatedAt := userFields[7].Descriptor()
 	// user.DefaultCreatedAt holds the default value on creation for the created_at field.

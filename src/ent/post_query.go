@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/hackgame-org/fanclub_api/ent/asset"
 	"github.com/hackgame-org/fanclub_api/ent/category"
+	"github.com/hackgame-org/fanclub_api/ent/like"
 	"github.com/hackgame-org/fanclub_api/ent/post"
 	"github.com/hackgame-org/fanclub_api/ent/predicate"
 	"github.com/hackgame-org/fanclub_api/ent/subscription"
@@ -29,6 +30,7 @@ type PostQuery struct {
 	predicates        []predicate.Post
 	withUser          *UserQuery
 	withSubscriptions *SubscriptionQuery
+	withLikes         *LikeQuery
 	withCategories    *CategoryQuery
 	withAssets        *AssetQuery
 	withFKs           bool
@@ -105,6 +107,28 @@ func (pq *PostQuery) QuerySubscriptions() *SubscriptionQuery {
 			sqlgraph.From(post.Table, post.FieldID, selector),
 			sqlgraph.To(subscription.Table, subscription.FieldID),
 			sqlgraph.Edge(sqlgraph.M2M, true, post.SubscriptionsTable, post.SubscriptionsPrimaryKey...),
+		)
+		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryLikes chains the current query on the "likes" edge.
+func (pq *PostQuery) QueryLikes() *LikeQuery {
+	query := (&LikeClient{config: pq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := pq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := pq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(post.Table, post.FieldID, selector),
+			sqlgraph.To(like.Table, like.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, post.LikesTable, post.LikesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
 		return fromU, nil
@@ -350,6 +374,7 @@ func (pq *PostQuery) Clone() *PostQuery {
 		predicates:        append([]predicate.Post{}, pq.predicates...),
 		withUser:          pq.withUser.Clone(),
 		withSubscriptions: pq.withSubscriptions.Clone(),
+		withLikes:         pq.withLikes.Clone(),
 		withCategories:    pq.withCategories.Clone(),
 		withAssets:        pq.withAssets.Clone(),
 		// clone intermediate query.
@@ -377,6 +402,17 @@ func (pq *PostQuery) WithSubscriptions(opts ...func(*SubscriptionQuery)) *PostQu
 		opt(query)
 	}
 	pq.withSubscriptions = query
+	return pq
+}
+
+// WithLikes tells the query-builder to eager-load the nodes that are connected to
+// the "likes" edge. The optional arguments are used to configure the query builder of the edge.
+func (pq *PostQuery) WithLikes(opts ...func(*LikeQuery)) *PostQuery {
+	query := (&LikeClient{config: pq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	pq.withLikes = query
 	return pq
 }
 
@@ -481,9 +517,10 @@ func (pq *PostQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Post, e
 		nodes       = []*Post{}
 		withFKs     = pq.withFKs
 		_spec       = pq.querySpec()
-		loadedTypes = [4]bool{
+		loadedTypes = [5]bool{
 			pq.withUser != nil,
 			pq.withSubscriptions != nil,
+			pq.withLikes != nil,
 			pq.withCategories != nil,
 			pq.withAssets != nil,
 		}
@@ -522,6 +559,13 @@ func (pq *PostQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Post, e
 		if err := pq.loadSubscriptions(ctx, query, nodes,
 			func(n *Post) { n.Edges.Subscriptions = []*Subscription{} },
 			func(n *Post, e *Subscription) { n.Edges.Subscriptions = append(n.Edges.Subscriptions, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := pq.withLikes; query != nil {
+		if err := pq.loadLikes(ctx, query, nodes,
+			func(n *Post) { n.Edges.Likes = []*Like{} },
+			func(n *Post, e *Like) { n.Edges.Likes = append(n.Edges.Likes, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -632,6 +676,36 @@ func (pq *PostQuery) loadSubscriptions(ctx context.Context, query *SubscriptionQ
 		for kn := range nodes {
 			assign(kn, n)
 		}
+	}
+	return nil
+}
+func (pq *PostQuery) loadLikes(ctx context.Context, query *LikeQuery, nodes []*Post, init func(*Post), assign func(*Post, *Like)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*Post)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(like.FieldPostID)
+	}
+	query.Where(predicate.Like(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(post.LikesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.PostID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "post_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
 	}
 	return nil
 }

@@ -39,6 +39,9 @@ func (Post) Edges() []ent.Edge {
 		// Belongs-to relationship to subscriptions
 		edge.From("subscriptions", Subscription.Type).Ref("posts"),
 
+		// Has-many relationship to like
+		edge.To("likes", Like.Type),
+
 		// Has-many relationship to category
 		edge.To("categories", Category.Type),
 

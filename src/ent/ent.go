@@ -15,6 +15,7 @@ import (
 	"github.com/hackgame-org/fanclub_api/ent/asset"
 	"github.com/hackgame-org/fanclub_api/ent/billboard"
 	"github.com/hackgame-org/fanclub_api/ent/category"
+	"github.com/hackgame-org/fanclub_api/ent/like"
 	"github.com/hackgame-org/fanclub_api/ent/post"
 	"github.com/hackgame-org/fanclub_api/ent/subscription"
 	"github.com/hackgame-org/fanclub_api/ent/user"
@@ -81,6 +82,7 @@ func checkColumn(table, column string) error {
 			asset.Table:        asset.ValidColumn,
 			billboard.Table:    billboard.ValidColumn,
 			category.Table:     category.ValidColumn,
+			like.Table:         like.ValidColumn,
 			post.Table:         post.ValidColumn,
 			subscription.Table: subscription.ValidColumn,
 			user.Table:         user.ValidColumn,
