@@ -19,6 +19,8 @@ Designful aims to implement all of the features covered by the competitors and a
 
 Here are the lists of features worth mentioning.
 
+- Customizable billboard and categories
+
 - Authentication and Authorization
 
 - Image and video upload
@@ -29,7 +31,7 @@ Here are the lists of features worth mentioning.
 
 - Place orders and checkout
 
-- In app notifications
+- Notifications
 
 - Webhooks handling events such as user signup
 
@@ -55,11 +57,11 @@ This include the full-text search powered with [Meilisearch](https://www.meilise
 
 - Multi channel notifications
 
-This include email and push notification on top of in app notifications.
+This include email and push notification support on top of in app notifications.
 
 - Flexible pricing
 
-This include facilitating easy launching discount and campaign.
+This include facilitating easy launch of discount and campaign.
 
 ## Technology
 
