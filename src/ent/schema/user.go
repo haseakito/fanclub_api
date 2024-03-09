@@ -44,6 +44,9 @@ func (User) Edges() []ent.Edge {
 
 		// Has-many relationship to subscriptions
 		edge.To("subscriptions", Subscription.Type),
+
+		// Many-to-many relationship between followers and followings
+		edge.To("following", User.Type).From("followers"),
 	}
 }
 

@@ -71,7 +71,7 @@ var (
 		{Name: "id", Type: field.TypeUUID},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "post_id", Type: field.TypeUUID, Nullable: true},
-		{Name: "user_id", Type: field.TypeString, Nullable: true, Default: "184fb9f1-bf3e-4db1-8947-9208f74951c7"},
+		{Name: "user_id", Type: field.TypeString, Nullable: true, Default: "1226c3dd-ab8e-47ad-bb91-90a1a636fa8d"},
 	}
 	// LikesTable holds the schema information for the "likes" table.
 	LikesTable = &schema.Table{
@@ -156,7 +156,7 @@ var (
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
 		{Name: "name", Type: field.TypeString},
-		{Name: "username", Type: field.TypeString, Default: "b00e3477-de5e-4391-a979-6e9b2fecf9aa"},
+		{Name: "username", Type: field.TypeString, Default: "ec5ddae6-6a20-4493-bbc2-77c61781bd8f"},
 		{Name: "url", Type: field.TypeString, Nullable: true},
 		{Name: "email", Type: field.TypeString, Unique: true},
 		{Name: "bio", Type: field.TypeString, Nullable: true, Size: 2147483647},
@@ -220,6 +220,31 @@ var (
 			},
 		},
 	}
+	// UserFollowingColumns holds the columns for the "user_following" table.
+	UserFollowingColumns = []*schema.Column{
+		{Name: "user_id", Type: field.TypeString},
+		{Name: "follower_id", Type: field.TypeString},
+	}
+	// UserFollowingTable holds the schema information for the "user_following" table.
+	UserFollowingTable = &schema.Table{
+		Name:       "user_following",
+		Columns:    UserFollowingColumns,
+		PrimaryKey: []*schema.Column{UserFollowingColumns[0], UserFollowingColumns[1]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "user_following_user_id",
+				Columns:    []*schema.Column{UserFollowingColumns[0]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "user_following_follower_id",
+				Columns:    []*schema.Column{UserFollowingColumns[1]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		AssetsTable,
@@ -231,6 +256,7 @@ var (
 		UsersTable,
 		PostCategoriesTable,
 		SubscriptionPostsTable,
+		UserFollowingTable,
 	}
 )
 
@@ -245,4 +271,6 @@ func init() {
 	PostCategoriesTable.ForeignKeys[1].RefTable = CategoriesTable
 	SubscriptionPostsTable.ForeignKeys[0].RefTable = SubscriptionsTable
 	SubscriptionPostsTable.ForeignKeys[1].RefTable = PostsTable
+	UserFollowingTable.ForeignKeys[0].RefTable = UsersTable
+	UserFollowingTable.ForeignKeys[1].RefTable = UsersTable
 }
