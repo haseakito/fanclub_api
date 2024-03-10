@@ -77,8 +77,7 @@ This include facilitating easy launch of discount and campaign.
     <img src="https://img.shields.io/badge/-stripe-008CDD.svg?logo=stripe&style=for-the-badge&logoColor=white">
     <img src="https://img.shields.io/badge/-clerk-6C47FF.svg?logo=clerk&style=for-the-badge">
     <img src="https://img.shields.io/badge/-sentry-362D59.svg?logo=sentry&style=for-the-badge">
-    <img src="https://img.shields.io/badge/-novu-000000.svg?logo=novu&style=for-the-badge">
-    <img src="https://img.shields.io/badge/-planetscale-000000.svg?logo=planetscale&style=for-the-badge">
+    <img src="https://img.shields.io/badge/-novu-000000.svg?logo=novu&style=for-the-badge">    
     <!-- Infrastracture -->
     <img src="https://img.shields.io/badge/-Docker-1488C6.svg?logo=docker&style=for-the-badge">
     <img src="https://img.shields.io/badge/-terraform-20232A?logo=terraform&style=for-the-badge">
@@ -101,7 +100,6 @@ This include facilitating easy launch of discount and campaign.
 - [Cloudinary](https://cloudinary.com/): Assets upload, transformation, and optimization
 - [Sentry](https://sentry.io/welcome/): Error monitoring
 - [Novu](https://novu.co/): Notifications
-- [Planetscale](https://planetscale.com/): MySQL Database
 
 ### Infrastructure
 
