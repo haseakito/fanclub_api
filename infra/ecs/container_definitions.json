@@ -1,7 +1,7 @@
 [
   {
     "name": "nginx",
-    "image": "${account_id}.dkr.ecr.ap-northeast-1.amazonaws.com/nginx:latest",
+    "image": "nginx:latest",
     "essential": true,
     "memory": 128,
     "logConfiguration": {
