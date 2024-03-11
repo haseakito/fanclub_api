@@ -12,7 +12,7 @@ env:
   AWS_REGION: ap-northeast-1
   ECS_SERVICE: fanclub-service
   ECS_CLUSTER: fanclub-cluster
-  ECS_TASK_DEFINITION: fanclub-task
+  ECS_TASK_DEFINITION: infra/ecs/container_definition.json
   CONTAINER_NAME: fanclub-api
 
 jobs:
