@@ -21,7 +21,7 @@
   },
   {
     "name": "fanclub-api",
-    "image": "${account_id}.dkr.ecr.ap-northeast-1.amazonaws.com/api:latest",
+    "image": "${account_id}.dkr.ecr.ap-northeast-1.amazonaws.com/fanclub:latest",
     "essential": true,
     "memory": 1536,
     "logConfiguration": {
