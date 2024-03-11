@@ -69,9 +69,9 @@ func (h SubscriptionHandler) GetSubscriptions(c echo.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (h PostHandler) GetSubscription(c echo.Context) error {
+func (h SubscriptionHandler) GetSubscription(c echo.Context) error {
 	// Get subscription id from request parameter
-	subscriptionID := c.Param("subscriptionId")
+	subscriptionID := c.Param("id")
 
 	// Parse subscription ID string into UUID
 	subscriptionUUID, err := uuid.Parse(subscriptionID)
@@ -79,11 +79,8 @@ func (h PostHandler) GetSubscription(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err)
 	}
 
-	//
-	res, err := h.db.Subscription.
-		QueryPosts(h.db.Subscription.GetX(c.Request().Context(), subscriptionUUID)).
-		All(c.Request().Context())
-
+	// Query the subscription with subscription id
+	res, err := h.db.Subscription.Get(c.Request().Context(), subscriptionUUID)
 	if err != nil {
 		return echo.ErrInternalServerError
 	}
