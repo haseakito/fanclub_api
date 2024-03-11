@@ -1,8 +1,6 @@
 package schema
 
 import (
-	"math/rand"
-	"strconv"
 	"time"
 
 	"entgo.io/ent"
@@ -48,8 +46,4 @@ func (User) Edges() []ent.Edge {
 		// Many-to-many relationship between followers and followings
 		edge.To("following", User.Type).From("followers"),
 	}
-}
-
-func GetRamdomUsername() string {
-	return "user-" + strconv.Itoa(rand.Intn(1000))
 }
