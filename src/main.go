@@ -104,7 +104,7 @@ func main() {
 		sh := handlers.NewSubscriptionHandler(db)
 
 		s.GET("", sh.GetSubscriptions)
-		s.GET("/:id", sh.GetSubscriptions)
+		s.GET("/:id", sh.GetSubscription)
 		s.POST("", sh.CreateSubscription)
 		s.PATCH("/:id", sh.UpdateSubscription)
 		s.DELETE("/:id", sh.DeleteSubscription)

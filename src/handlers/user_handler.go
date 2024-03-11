@@ -131,8 +131,10 @@ func (h UserHandler) GetPostsByUserID(c echo.Context) error {
 	}
 
 	// Query posts by user id with limit and offset
-	posts, err := h.db.User.
+	posts, err := h.db.User.		
 		QueryPosts(h.db.User.GetX(c.Request().Context(), userID)).
+		WithCategories().
+		WithAssets().
 		Limit(limit).
 		Offset(offset).
 		All(c.Request().Context())

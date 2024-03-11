@@ -181,7 +181,9 @@ func (h PostHandler) GetPostByID(c echo.Context) error {
 	postData, err := h.db.Post.
 		Query().
 		Where(post.ID(postUUID)).
+		WithUser().
 		WithCategories().
+		WithSubscriptions().
 		WithAssets().
 		Only(c.Request().Context())
 	if err != nil {
@@ -203,12 +205,14 @@ func (h PostHandler) GetPostByID(c echo.Context) error {
 	// Create a response structure that includes the post and the like count
 	type PostResponse struct {
 		Post      *ent.Post `json:"post"`
+		User      *ent.User `json:"user"`
 		LikeCount int       `json:"likes"`
 	}
 
 	// Create the response object
 	res := PostResponse{
 		Post:      postData,
+		User:      postData.Edges.User,
 		LikeCount: likeCount,
 	}
 
