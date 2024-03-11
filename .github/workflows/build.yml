@@ -74,7 +74,7 @@ jobs:
           #
           REPOSITORY: fanclub
 
-          IMAGE_TAG: ${{ github.sha }}
+          IMAGE_TAG: latest
         working-directory: ./src
         run: |
           # Build a docker container and
