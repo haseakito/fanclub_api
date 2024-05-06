@@ -13,6 +13,8 @@ services:
     depends_on:
       - db
       - cache
+    env_file:
+      - src/.env
     networks:
       - fanclub
 
@@ -56,7 +58,6 @@ services:
 
 networks:
   fanclub:
-
 
 volumes:
   db-data:
