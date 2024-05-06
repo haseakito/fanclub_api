@@ -19,7 +19,7 @@ Designful aims to implement all of the features covered by the competitors and a
 
 Here are the lists of features worth mentioning.
 
-- Customizable billboard and categories
+- Analytics Dashboard
 
 - Authentication and Authorization
 
@@ -33,7 +33,7 @@ Here are the lists of features worth mentioning.
 
 - Notifications
 
-- Webhooks handling events such as user signup
+- Webhooks handling events such as payment confirmation
 
 ### Future scope
 
@@ -97,7 +97,6 @@ This include facilitating easy launch of discount and campaign.
 
 - [Stripe](https://stripe.com/): Checkout
 - [Clerk](https://clerk.com/): Authentication and Authorization
-- [Cloudinary](https://cloudinary.com/): Assets upload, transformation, and optimization
 - [Sentry](https://sentry.io/welcome/): Error monitoring
 - [Novu](https://novu.co/): Notifications
 
@@ -111,12 +110,8 @@ This include facilitating easy launch of discount and campaign.
 ## Development
 
 For local development, here are some basic commands with `Makefile` to get started.
-Make sure that you follow [this instruction](https://ngrok.com/docs/integrations/clerk/webhooks/) to install `ngrok` to run `make listen` command.
 
 ```
-# Expose local endpoint to receive webhook from Clerk
-make listen
-
 # Start container
 make start
 
