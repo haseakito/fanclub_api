@@ -1,0 +1,30 @@
+openapi: "3.0.2"
+info:
+  title: Designful API
+  version: "1.0.0"
+servers:
+  - url: https://api.designful.com/api/v1
+    description: Production server
+
+paths:
+  /auth:
+    $ref: "./paths/auth.yml"
+  /users:
+    $ref: "./paths/users.yml"
+  /likes:
+    $ref: "./paths/likes.yml"
+  /posts:
+    $ref: "./paths/posts.yml"
+  /categories:
+    $ref: "./paths/categories.yml"
+
+components:
+  schemas:
+    User:
+      $ref: "./schemas/user.yml"
+    Category:
+      $ref: "./schemas/category.yml"
+    Post:
+      $ref: "./schemas/post.yml"
+    Like:
+      $ref: "./schemas/like.yml"
