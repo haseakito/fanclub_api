@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/hackgame-org/fanclub_api/ent/enttest"
+	"github.com/hackgame-org/fanclub_api/api/ent/enttest"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,6 +33,7 @@ func TestCreateSubscription(t *testing.T) {
 		SetID("test-id").
 		SetName("test user").
 		SetEmail("example@example.com").
+		SetPassword("test user password").
 		Save(ctx)
 	require.NoError(t, err)
 
@@ -80,12 +81,13 @@ func TestGetSubscriptions(t *testing.T) {
 		SetID("test-id").
 		SetName("test user").
 		SetEmail("example@example.com").
+		SetPassword("test user password").
 		Save(ctx)
 	require.NoError(t, err)
 
 	// Generate known UUIDs for the subscription
-	subUUID1 := uuid.New()
-	subUUID2 := uuid.New()
+	subUUID1 := uuid.NewString()
+	subUUID2 := uuid.NewString()
 
 	_, err = tx.Subscription.
 		CreateBulk(
@@ -120,7 +122,7 @@ func TestGetSubscriptions(t *testing.T) {
 	require.NotNil(t, subs)
 
 	// Assert that the returned subscription title matches the expected title
-	assert.Equal(t, "test subscription 1", subs[0].Name)	
+	assert.Equal(t, "test subscription 1", subs[0].Name)
 	assert.Equal(t, "test subscription 2", subs[1].Name)
 }
 
@@ -146,11 +148,12 @@ func TestGetSubscription(t *testing.T) {
 		SetID("test-id").
 		SetName("test user").
 		SetEmail("example@example.com").
+		SetPassword("test user password").
 		Save(ctx)
 	require.NoError(t, err)
 
 	// Generate a known UUID for the subscription
-	subUUID := uuid.New()
+	subUUID := uuid.NewString()
 
 	// Insert test data
 	_, err = tx.Subscription.
@@ -203,11 +206,12 @@ func TestUpdateSubscription(t *testing.T) {
 		SetID("test-id").
 		SetName("test user").
 		SetEmail("example@example.com").
+		SetPassword("test user password").
 		Save(ctx)
 	require.NoError(t, err)
 
 	// Generate a known UUID for the subscription
-	subUUID := uuid.New()
+	subUUID := uuid.NewString()
 
 	// Insert test data
 	_, err = tx.Subscription.
@@ -264,11 +268,12 @@ func TestDelete(t *testing.T) {
 		SetID("test-id").
 		SetName("test user").
 		SetEmail("example@example.com").
+		SetPassword("test user password").
 		Save(ctx)
 	require.NoError(t, err)
 
 	// Generate a known UUID for the subscription
-	subUUID := uuid.New()
+	subUUID := uuid.NewString()
 
 	// Insert test data
 	_, err = tx.Subscription.

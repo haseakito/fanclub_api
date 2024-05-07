@@ -6,7 +6,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/hackgame-org/fanclub_api/ent/enttest"
+	"github.com/google/uuid"
+	"github.com/hackgame-org/fanclub_api/api/ent/enttest"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,8 +25,8 @@ func TestGetUsers(t *testing.T) {
 	require.NoError(t, err)
 
 	// Generate known IDs for users
-	userID1 := "user-" + strconv.Itoa(rand.Intn(1000))
-	userID2 := "user-" + strconv.Itoa(rand.Intn(1000))
+	userID1 := uuid.NewString()
+	userID2 := uuid.NewString()
 
 	// Insert test data
 	_, err = client.User.
@@ -34,12 +35,14 @@ func TestGetUsers(t *testing.T) {
 				Create().
 				SetID(userID1).
 				SetName("test user 1").
-				SetEmail("example1@example.com"),
+				SetEmail("example1@example.com").
+				SetPassword("test user password"),
 			client.User.
 				Create().
 				SetID(userID2).
 				SetName("test user 2").
-				SetEmail("example2@example.com"),
+				SetEmail("example2@example.com").
+				SetPassword("test user password"),
 		).
 		Save(ctx)
 	require.NoError(t, err)
@@ -73,6 +76,7 @@ func TestGetUser(t *testing.T) {
 		SetID(userID).
 		SetName("test user").
 		SetEmail("example@example.com").
+		SetPassword("test user password").
 		Save(ctx)
 	require.NoError(t, err)
 
@@ -107,6 +111,7 @@ func TestUpdateUser(t *testing.T) {
 		SetID(userID).
 		SetName("test user").
 		SetEmail("example@example.com").
+		SetPassword("test user password").
 		Save(ctx)
 	require.NoError(t, err)
 

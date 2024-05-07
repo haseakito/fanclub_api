@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/hackgame-org/fanclub_api/ent/enttest"
+	"github.com/hackgame-org/fanclub_api/api/ent/enttest"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,8 +23,8 @@ func TestGetCategories(t *testing.T) {
 	require.NoError(t, err)
 
 	// Generate known UUIDs for categories
-	categoryUUID1 := uuid.New()
-	categoryUUID2 := uuid.New()
+	categoryUUID1 := uuid.NewString()
+	categoryUUID2 := uuid.NewString()
 
 	// Insert test data
 	_, err = client.Category.
@@ -64,7 +64,7 @@ func TestGetPostsByCategoryID(t *testing.T) {
 	defer tx.Rollback()
 
 	// Generate known UUID for categories
-	categoryUUID := uuid.New()
+	categoryUUID := uuid.NewString()
 
 	// Insert test data
 	_, err = tx.Category.
@@ -75,7 +75,7 @@ func TestGetPostsByCategoryID(t *testing.T) {
 	require.NoError(t, err)
 
 	// Generate a known UUID for the post
-	postUUID := uuid.New()
+	postUUID := uuid.NewString()
 
 	// Insert test data
 	_, err = tx.Post.
@@ -115,7 +115,7 @@ func TestDeleteCategory(t *testing.T) {
 	require.NoError(t, err)
 
 	// Generate a known UUID for the category
-	categoryUUID := uuid.New()
+	categoryUUID := uuid.NewString()
 
 	// Insert test data
 	_, err = client.Category.

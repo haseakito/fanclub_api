@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/hackgame-org/fanclub_api/ent/enttest"
+	"github.com/hackgame-org/fanclub_api/api/ent/enttest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,11 +31,13 @@ func TestCreateFollow(t *testing.T) {
 			client.User.Create().
 				SetID(userID1).
 				SetName("test user 1").
-				SetEmail("example1@example.com"),
+				SetEmail("example1@example.com").
+				SetPassword("test user password"),
 			client.User.Create().
 				SetID(userID2).
 				SetName("test user 2").
-				SetEmail("example2@example.com"),
+				SetEmail("example2@example.com").
+				SetPassword("test user password"),
 		).
 		Save(ctx)
 	require.NoError(t, err)
@@ -78,11 +80,13 @@ func TestDeleteFollow(t *testing.T) {
 			client.User.Create().
 				SetID(userID1).
 				SetName("test user 1").
-				SetEmail("example1@example.com"),
+				SetEmail("example1@example.com").
+				SetPassword("test user password"),
 			client.User.Create().
 				SetID(userID2).
 				SetName("test user 2").
-				SetEmail("example2@example.com"),
+				SetEmail("example2@example.com").
+				SetPassword("test user password"),
 		).
 		Save(ctx)
 	require.NoError(t, err)

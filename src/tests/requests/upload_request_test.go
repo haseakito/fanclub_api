@@ -5,7 +5,7 @@ import (
 	"net/textproto"
 	"testing"
 
-	"github.com/hackgame-org/fanclub_api/requests"
+	"github.com/hackgame-org/fanclub_api/api/requests"
 	"github.com/stretchr/testify/assert"
 )
 

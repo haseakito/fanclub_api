@@ -1,14 +1,14 @@
 package ent_test
 
 import (
-	"context"	
+	"context"
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/hackgame-org/fanclub_api/ent/enttest"
-	"github.com/hackgame-org/fanclub_api/ent/like"
-	"github.com/hackgame-org/fanclub_api/ent/post"
-	"github.com/hackgame-org/fanclub_api/ent/user"
+	"github.com/hackgame-org/fanclub_api/api/ent/enttest"
+	"github.com/hackgame-org/fanclub_api/api/ent/like"
+	"github.com/hackgame-org/fanclub_api/api/ent/post"
+	"github.com/hackgame-org/fanclub_api/api/ent/user"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -27,7 +27,7 @@ func TestCreateLike(t *testing.T) {
 	// Generate a know ID for user
 	userID := uuid.NewString()
 	// Generate a known UUID for the post
-	postUUID := uuid.New()
+	postUUID := uuid.NewString()
 
 	// Start a new transaction
 	tx, err := client.Tx(ctx)
@@ -40,6 +40,7 @@ func TestCreateLike(t *testing.T) {
 		SetID(userID).
 		SetName("test user").
 		SetEmail("example@example.com").
+		SetPassword("test user password").
 		Save(ctx)
 	require.NoError(t, err)
 
@@ -56,13 +57,9 @@ func TestCreateLike(t *testing.T) {
 	err = tx.Commit()
 	require.NoError(t, err)
 
-	// Generate a known UUID for the like
-	likeUUID := uuid.New()
-
 	// Insert a new like with user id and post id
 	_, err = client.Like.
 		Create().
-		SetID(likeUUID).
 		SetPost(client.Post.GetX(ctx, postUUID)).
 		SetUser(client.User.GetX(ctx, userID)).
 		Save(ctx)
@@ -98,9 +95,7 @@ func TestDeleteLike(t *testing.T) {
 	// Generate a know ID for user
 	userID := uuid.NewString()
 	// Generate a known UUID for the post
-	postUUID := uuid.New()
-	// Generate a known UUID for the like
-	likeUUID := uuid.New()
+	postUUID := uuid.NewString()
 
 	// Start a new transaction
 	tx, err := client.Tx(ctx)
@@ -113,6 +108,7 @@ func TestDeleteLike(t *testing.T) {
 		SetID(userID).
 		SetName("test user").
 		SetEmail("example@example.com").
+		SetPassword("test user password").
 		Save(ctx)
 	require.NoError(t, err)
 
@@ -132,7 +128,6 @@ func TestDeleteLike(t *testing.T) {
 	// Insert a new like
 	_, err = client.Like.
 		Create().
-		SetID(likeUUID).
 		SetPost(client.Post.GetX(ctx, postUUID)).
 		SetUser(client.User.GetX(ctx, userID)).
 		Save(ctx)

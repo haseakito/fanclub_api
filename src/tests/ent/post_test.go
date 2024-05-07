@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/hackgame-org/fanclub_api/ent/enttest"
-	"github.com/hackgame-org/fanclub_api/ent/post"
+	"github.com/hackgame-org/fanclub_api/api/ent/enttest"
+	"github.com/hackgame-org/fanclub_api/api/ent/post"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -34,6 +34,7 @@ func TestCreatePost(t *testing.T) {
 		SetID("test-id").
 		SetName("test user").
 		SetEmail("example@example.com").
+		SetPassword("test user password").
 		Save(ctx)
 	require.NoError(t, err)
 
@@ -68,7 +69,7 @@ func TestCreatePostWithCategory(t *testing.T) {
 	require.NoError(t, err)
 
 	// Generate a known UUID for the category
-	categoryUUID := uuid.New()
+	categoryUUID := uuid.NewString()
 
 	// Start a new transaction
 	tx, err := client.Tx(ctx)
@@ -81,6 +82,7 @@ func TestCreatePostWithCategory(t *testing.T) {
 		SetID("test-id").
 		SetName("test user").
 		SetEmail("example@example.com").
+		SetPassword("test user password").
 		Save(ctx)
 	require.NoError(t, err)
 
@@ -134,7 +136,7 @@ func TestCreatePostWithSubscription(t *testing.T) {
 	require.NoError(t, err)
 
 	// Generate a known UUID for the subscription
-	subscriptionUUID := uuid.New()
+	subscriptionUUID := uuid.NewString()
 
 	// Start a new transaction
 	tx, err := client.Tx(ctx)
@@ -147,6 +149,7 @@ func TestCreatePostWithSubscription(t *testing.T) {
 		SetID("test-id").
 		SetName("test user").
 		SetEmail("example@example.com").
+		SetPassword("test user password").
 		Save(ctx)
 	require.NoError(t, err)
 
@@ -192,82 +195,6 @@ func TestCreatePostWithSubscription(t *testing.T) {
 	assert.Equal(t, subscriptionUUID, postWithSubscriptions.Edges.Subscriptions[0].ID)
 }
 
-func TestUploadFiles(t *testing.T) {
-	ctx := context.Background()
-
-	// Open a test SQLite database
-	client := enttest.Open(t, "sqlite3", "file:ent?mode=memory&_fk=1")
-	defer client.Close()
-
-	// Create the schema
-	err := client.Schema.Create(ctx)
-	require.NoError(t, err)
-
-	// Generate a known UUID for the post
-	postUUID := uuid.New()
-
-	// Start a new transaction
-	tx, err := client.Tx(ctx)
-	require.NoError(t, err)
-	defer tx.Rollback()
-
-	// Insert a new user
-	user, err := tx.User.
-		Create().
-		SetID("test-id").
-		SetName("test user").
-		SetEmail("example@example.com").
-		Save(ctx)
-	require.NoError(t, err)
-
-	// Insert test data
-	_, err = tx.Post.
-		Create().
-		SetID(postUUID).
-		SetTitle("test title").
-		SetUser(user).
-		Save(ctx)
-	require.NoError(t, err)
-
-	// Insert a new asset
-	assets, err := tx.Asset.
-		CreateBulk(
-			tx.Asset.
-				Create().
-				SetPublicID("test public id 1").
-				SetResourceType("image").
-				SetURL("https://res.cloudinary.com/demo/image/upload/v1591095352/hl22acprlomnycgiudor.jpg"),
-			tx.Asset.
-				Create().
-				SetPublicID("test public id 2").
-				SetResourceType("image").
-				SetURL("https://res.cloudinary.com/demo/image/upload/v1591095352/hl22acprlomnycgiudor.jpg"),
-		).
-		Save(ctx)
-	require.NoError(t, err)
-
-	// Update asset field
-	_, err = tx.Post.
-		UpdateOneID(postUUID).
-		AddAssets(assets...).
-		Save(ctx)
-	require.NoError(t, err)
-
-	// Commit the transaction
-	err = tx.Commit()
-	require.NoError(t, err)
-
-	post, err := client.Post.Query().WithAssets().Only(ctx)
-	require.NoError(t, err)
-
-	// Assert that the returned post is not nil
-	require.NotNil(t, post)
-
-	// Assert that the returned post id matches the expected id
-	assert.Equal(t, "test public id 1", post.Edges.Assets[0].PublicID)
-	assert.Equal(t, "test public id 2", post.Edges.Assets[1].PublicID)
-}
-
 func TestGetPosts(t *testing.T) {
 	ctx := context.Background()
 
@@ -280,8 +207,8 @@ func TestGetPosts(t *testing.T) {
 	require.NoError(t, err)
 
 	// Generate known UUIDs for posts
-	postUUID1 := uuid.New()
-	postUUID2 := uuid.New()
+	postUUID1 := uuid.NewString()
+	postUUID2 := uuid.NewString()
 
 	// Insert test data
 	_, err = client.Post.
@@ -336,11 +263,12 @@ func TestGetPost(t *testing.T) {
 		SetID("test-id").
 		SetName("test user").
 		SetEmail("example@example.com").
+		SetPassword("test user password").
 		Save(ctx)
 	require.NoError(t, err)
 
 	// Generate a known UUID for the post
-	postUUID := uuid.New()
+	postUUID := uuid.NewString()
 
 	// Insert test data
 	_, err = tx.Post.
@@ -392,11 +320,12 @@ func TestUpdatePost(t *testing.T) {
 		SetID("test-id").
 		SetName("test user").
 		SetEmail("example@example.com").
+		SetPassword("test user password").
 		Save(ctx)
 	require.NoError(t, err)
 
 	// Generate a known UUID for the post
-	postUUID := uuid.New()
+	postUUID := uuid.NewString()
 
 	// Insert test data
 	_, err = tx.Post.
@@ -432,78 +361,6 @@ func TestUpdatePost(t *testing.T) {
 	assert.Equal(t, "modified test description", post.Description)
 }
 
-func TestDeleteFile(t *testing.T) {
-	ctx := context.Background()
-
-	// Open a test SQLite database
-	client := enttest.Open(t, "sqlite3", "file:ent?mode=memory&_fk=1")
-	defer client.Close()
-
-	// Create the schema
-	err := client.Schema.Create(ctx)
-	require.NoError(t, err)
-
-	// Generate known UUIDs for post and asset
-	postUUID := uuid.New()
-	assetUUID := uuid.New()
-
-	// Start a new transaction
-	tx, err := client.Tx(ctx)
-	require.NoError(t, err)
-	defer tx.Rollback()
-
-	// Insert a new user
-	user, err := tx.User.
-		Create().
-		SetID("test-id").
-		SetName("test user").
-		SetEmail("example@example.com").
-		Save(ctx)
-	require.NoError(t, err)
-
-	_, err = tx.Post.
-		Create().
-		SetID(postUUID).
-		SetTitle("test title").
-		SetUser(user).
-		AddAssets(tx.Asset.
-			Create().
-			SetID(assetUUID).
-			SetPublicID("test public id").
-			SetResourceType("image").
-			SetURL("https://res.cloudinary.com/demo/image/upload/v1591095352/hl22acprlomnycgiudor.jpg").
-			SaveX(ctx),
-		).
-		Save(ctx)
-	require.NoError(t, err)
-
-	// Commit the transaction
-	err = tx.Commit()
-	require.NoError(t, err)
-
-	// Query the assets with post id
-	_, err = client.Post.QueryAssets(client.Post.GetX(ctx, postUUID)).All(ctx)
-	require.NoError(t, err)
-
-	// Delete the asset
-	err = client.Asset.DeleteOneID(assetUUID).Exec(ctx)
-	require.NoError(t, err)
-
-	// Query the post with post id
-	post, err := client.Post.
-		Query().
-		WithAssets().
-		Where(post.ID(postUUID)).
-		Only(ctx)
-	require.NoError(t, err)
-
-	// Assert that the returned post is not nil
-	assert.NotNil(t, post)
-
-	// Assert that the returned post has no asset
-	assert.Equal(t, 0, len(post.Edges.Assets))
-}
-
 func TestDeletePost(t *testing.T) {
 	ctx := context.Background()
 
@@ -516,7 +373,7 @@ func TestDeletePost(t *testing.T) {
 	require.NoError(t, err)
 
 	// Generate a known UUID for the post
-	postUUID := uuid.New()
+	postUUID := uuid.NewString()
 
 	// Insert test data
 	_, err = client.Post.

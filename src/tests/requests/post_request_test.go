@@ -3,7 +3,7 @@ package requests_test
 import (
 	"testing"
 
-	"github.com/hackgame-org/fanclub_api/requests"
+	"github.com/hackgame-org/fanclub_api/api/requests"
 	"github.com/stretchr/testify/assert"
 )
 
