@@ -4,16 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Designful API Documentation</title>
-    <script src="https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js"></script>
+    <link rel=”stylesheet” type=”text/css”
+    href=”https://pagecdn.io/lib/swagger-ui/v3.31.1/swagger-ui.css”>
   </head>
   <body>
-    <redoc
-      spec-url="https://haseakito.github.io/fanclub-api/docs/api-definitions.yml"
-    ></redoc>
-    <script>
-      Redoc.init(
-        "https://haseakito.github.io/fanclub-api/docs/api-definitions.yml"
-      );
-    </script>
+    <div id="openapi">
+      <script src=”https://pagecdn.io/lib/swagger-ui/v3.31.1/swagger-ui-bundle.js”></script>
+      <script>
+        window.onload = function () {
+          const ui = SwaggerUIBundle({
+            url:"api-definitions.yml",
+            dom_id: "#openapi"
+          })}
+      </script>
+    </div>
   </body>
 </html>
