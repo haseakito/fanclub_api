@@ -1,0 +1,177 @@
+/users/upload/profile_picture:
+  post:
+    summary: Upload a profile picture
+    description: Allows a user to upload a profile picture.
+    requestBody:
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            properties:
+              file:
+                type: string
+                format: binary
+                description: The image file to upload as a profile picture.
+    responses:
+      "200":
+        description: Profile picture uploaded successfully, no content to return.
+      "400":
+        description: Bad request, such as if no file is provided.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  example: "Failed to upload file."
+
+/users/{id}/follow:
+  post:
+    summary: Follow a user
+    description: Allows a user to follow another user.
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          description: The unique identifier of the user to follow.
+    responses:
+      "200":
+        description: User followed successfully, no content returned.
+      "500":
+        description: User follow unsuccessful.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  example: "Failed to follow user."
+
+/users/{id}/unfollow:
+  post:
+    summary: Unfollow a user
+    description: Allows a user to unfollow another user.
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          description: The unique identifier of the user to unfollow.
+    responses:
+      "200":
+        description: User unfollowed successfully, no content returned.
+      "500":
+        description: User unfollow unsuccessful.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  example: "Failed to unfollow user."
+
+/users:
+  get:
+    summary: Get all users
+    description: Retrieves a list of users.
+    parameters:
+      - in: query
+        name: limit
+        required: false
+        schema:
+          type: integer
+          default: 10
+        description: Maximum number of users to return at one time (default is 10).
+      - in: query
+        name: offset
+        required: false
+        schema:
+          type: integer
+          default: 0
+        description: The initial index from which to return the results.
+    responses:
+      "200":
+        description: A list of users.
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "../schemas/user.yml"
+
+/users/{id}:
+  get:
+    summary: Get user by ID
+    description: Retrieves detailed information about a specific user based on their unique ID.
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        description: The unique identifier of the user.
+    responses:
+      "200":
+        description: Detailed user information.
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/user.yml"
+      "404":
+        description: User not found.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  example: "User not found."
+
+/users/{id}/followers:
+  get:
+    summary: Get followers of the user
+    description: Retrieves a list of users who follow the specified user.
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        description: The unique identifier of the user whose followers are being requested.
+    responses:
+      "200":
+        description: A list of followers.
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "../schemas/user.yml"
+
+/users/{id}/following:
+  get:
+    summary: Get users followed by the user
+    description: Retrieves a list of users that the specified user is following.
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        description: The unique identifier of the user whose following list is being requested.
+    responses:
+      "200":
+        description: A list of users being followed.
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "../schemas/user.yml"

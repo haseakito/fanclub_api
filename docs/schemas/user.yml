@@ -1,0 +1,44 @@
+User:
+  type: object
+  properties:
+    id:
+      type: string
+      description: The unique identifier of the user.
+    name:
+      type: string
+      description: The name of the user.
+    username:
+      type: string
+      description: The username of the user, automatically assigned a CUID if not provided.
+    stripe_customer_id:
+      type: string
+      nullable: true
+      description: Optional Stripe customer ID for the user.
+    url:
+      type: string
+      nullable: true
+      description: Optional URL associated with the user.
+    email:
+      type: string
+      description: The user's email address.
+    email_verified:
+      type: boolean
+      default: false
+      description: Flag indicating whether the user's email address has been verified.
+    bio:
+      type: string
+      description: A brief biography of the user.
+    profile_image_url:
+      type: string
+      nullable: true
+      description: Optional URL to the user's profile image.
+    created_at:
+      type: string
+      format: date-time
+      default: "Current Timestamp"
+      description: Timestamp when the user account was created.
+    updated_at:
+      type: string
+      format: date-time
+      default: "Current Timestamp"
+      description: Timestamp when the user account was last updated, automatically updated to current timestamp on modification.
