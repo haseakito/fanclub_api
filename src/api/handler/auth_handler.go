@@ -128,6 +128,7 @@ func (h AuthHandler) Signin(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{
 		"message":      "Successfully signed in",
 		"access_token": token,
+		"user_id":      user.ID,
 	})
 }
 
