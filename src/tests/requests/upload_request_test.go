@@ -110,5 +110,5 @@ func TestValidateVideo(t *testing.T) {
 	// Validate invalid request. Should fail
 	err = requests.ValidateVideo(invalidReq)
 	assert.Error(t, err)
-	assert.Equal(t, err.Error(), "file type must be MPEG  or MP4")
+	assert.Equal(t, err.Error(), "file type must be MPEG or MP4")
 }
