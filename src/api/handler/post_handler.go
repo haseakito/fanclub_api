@@ -1,27 +1,38 @@
 package handlers
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/hackgame-org/fanclub_api/api/ent"
 	"github.com/hackgame-org/fanclub_api/api/ent/like"
 	"github.com/hackgame-org/fanclub_api/api/ent/post"
+	"github.com/hackgame-org/fanclub_api/api/ent/user"
 	"github.com/hackgame-org/fanclub_api/api/requests"
+	"github.com/hackgame-org/fanclub_api/internal/redis"
+	"github.com/hackgame-org/fanclub_api/pkg/cache"
 	"github.com/hackgame-org/fanclub_api/pkg/storage"
 	"github.com/labstack/echo/v4"
 	muxgo "github.com/muxinc/mux-go"
 )
 
 type PostHandler struct {
-	db  *ent.Client
-	mux *muxgo.APIClient
+	db    *ent.Client
+	mux   *muxgo.APIClient
+	cache *cache.Cache[[]*ent.Post]
 }
 
-func NewPostHandler(db *ent.Client, mux *muxgo.APIClient) *PostHandler {
+func NewPostHandler(db *ent.Client, mux *muxgo.APIClient, rdb redis.Client) *PostHandler {
 	return &PostHandler{
 		db:  db,
 		mux: mux,
+		cache: cache.NewCache[[]*ent.Post](
+			rdb,
+			time.Minute,
+		),
 	}
 }
 
@@ -145,6 +156,9 @@ func (h PostHandler) UploadThumnail(c echo.Context) error {
 }
 
 func (h PostHandler) GetPosts(c echo.Context) error {
+	// Get user ID from query parameter
+	userID := c.QueryParam("userId")
+
 	// Get limit from query parameter
 	limitStr := c.QueryParam("limit")
 	// Convert the limit from string to int
@@ -161,13 +175,24 @@ func (h PostHandler) GetPosts(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Failed to parse pagination offset"})
 	}
 
+	// Define a key for caching that includes the pagination parameters
+	var cacheKey string
+	if userID != "" {
+		cacheKey = fmt.Sprintf("posts-user-%s-limit-%d-offset-%d", userID, limit, offset)
+	} else {
+		cacheKey = fmt.Sprintf("posts-limit-%d-offset-%d", limit, offset)
+	}
+
 	// Query posts with limit and offset
-	res, err := h.db.Post.
-		Query().
-		WithCategories().
-		Limit(limit).
-		Offset(offset).
-		All(c.Request().Context())
+	res, err := h.cache.GetOrSet(c.Request().Context(), cacheKey, func(ctx context.Context) ([]*ent.Post, error) {
+		query := h.db.Post.Query().WithCategories().Limit(limit).Offset(offset)
+		// Filter by user id if provided
+		if userID != "" {
+			query = query.Where(post.HasUserWith(user.IDEQ(userID)))
+		}
+		return query.All(ctx)
+	})
+
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to fetch posts: " + err.Error()})
 	}
@@ -176,6 +201,9 @@ func (h PostHandler) GetPosts(c echo.Context) error {
 }
 
 func (h PostHandler) GetPostByID(c echo.Context) error {
+	// Get the user id from context
+	userID := c.Get("userID").(string)
+
 	// Get post id from request
 	postID := c.Param("id")
 
@@ -200,57 +228,35 @@ func (h PostHandler) GetPostByID(c echo.Context) error {
 		Where(like.HasPostWith(post.ID(postID))).
 		Count(c.Request().Context())
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to fetch a number of likes: " + err.Error()})
 	}
 
-	// Create a response structure that includes the post and the like count
-	type PostResponse struct {
-		Post      *ent.Post `json:"post"`
-		User      *ent.User `json:"user"`
-		LikeCount int       `json:"likes"`
+	// Determine if the current user has liked the post
+	userLiked, err := h.db.Like.
+		Query().
+		Where(
+			like.HasUserWith(user.ID(userID)),
+			like.HasPostWith(post.ID(postID)),
+		).
+		Exist(c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to fetch the like" + err.Error()})
 	}
 
 	// Create the response object
-	res := PostResponse{
+	res := struct {
+		Post      *ent.Post `json:"post"`
+		User      *ent.User `json:"user"`
+		LikeCount int       `json:"likes"`
+		UserLiked bool      `json:"userLiked"`
+	}{
 		Post:      postData,
 		User:      postData.Edges.User,
 		LikeCount: likeCount,
+		UserLiked: userLiked,
 	}
 
 	return c.JSON(http.StatusOK, res)
-}
-
-func (h PostHandler) GetMyPosts(c echo.Context) error {
-	// Get the user id from context
-	userID := c.Get("userID").(string)
-
-	// Get limit from query parameter
-	limitStr := c.QueryParam("limit")
-	// Convert the limit from string to int
-	limit, err := strconv.Atoi(limitStr)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Failed to parse pagination limit"})
-	}
-
-	// Get offset from query parameter
-	offsetStr := c.QueryParam("offset")
-	// Convert the offset from string to int
-	offset, err := strconv.Atoi(offsetStr)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Failed to parse pagination offset"})
-	}
-
-	// Query posts by user id with limit and offset
-	posts, err := h.db.User.
-		QueryPosts(h.db.User.GetX(c.Request().Context(), userID)).
-		WithCategories().
-		Limit(limit).
-		Offset(offset).
-		All(c.Request().Context())
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
-	}
-	return c.JSON(http.StatusOK, posts)
 }
 
 func (h PostHandler) UpdatePost(c echo.Context) error {

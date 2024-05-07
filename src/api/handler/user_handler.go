@@ -1,24 +1,35 @@
 package handlers
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/hackgame-org/fanclub_api/api/ent"
 	"github.com/hackgame-org/fanclub_api/api/ent/post"
 	"github.com/hackgame-org/fanclub_api/api/ent/user"
 	"github.com/hackgame-org/fanclub_api/api/requests"
+	"github.com/hackgame-org/fanclub_api/internal/redis"
+
+	"github.com/hackgame-org/fanclub_api/pkg/cache"
 	"github.com/hackgame-org/fanclub_api/pkg/storage"
 	"github.com/labstack/echo/v4"
 )
 
 type UserHandler struct {
-	db *ent.Client
+	db    *ent.Client
+	cache *cache.Cache[[]*ent.User]
 }
 
-func NewUserHandler(db *ent.Client) *UserHandler {
+func NewUserHandler(db *ent.Client, rdb redis.Client) *UserHandler {
 	return &UserHandler{
 		db: db,
+		cache: cache.NewCache[[]*ent.User](
+			rdb,
+			time.Minute,
+		),
 	}
 }
 
@@ -125,12 +136,17 @@ func (h UserHandler) GetUsers(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Failed to parse pagination offset"})
 	}
 
+	// Define a key for caching that includes the pagination parameters
+	cacheKey := fmt.Sprintf("users-limit-%d-offset-%d", limit, offset)
+
 	// Query posts with limit and offset
-	users, err := h.db.User.
-		Query().
-		Limit(limit).
-		Offset(offset).
-		All(c.Request().Context())
+	users, err := h.cache.GetOrSet(c.Request().Context(), cacheKey, func(ctx context.Context) ([]*ent.User, error) {
+		return h.db.User.
+			Query().
+			Limit(limit).
+			Offset(offset).
+			All(ctx)
+	})
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, users)
 	}
@@ -142,12 +158,8 @@ func (h UserHandler) GetUser(c echo.Context) error {
 	// Get user id from request parameter
 	userID := c.Param("id")
 
-	// Query user with user id
-	user, err := h.db.User.
-		Query().
-		Where(user.ID(userID)).
-		WithSubscriptions().
-		Only(c.Request().Context())
+	// Fetch user from cache first, then from database
+	user, err := h.db.User.Get(c.Request().Context(), userID)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return echo.ErrNotFound
@@ -171,18 +183,15 @@ func (h UserHandler) GetUser(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, user)
 	}
 
-	// Create a response structure that includes the user and the following and followers count
-	type UserResponse struct {
+	// Create the response object
+	res := struct {
 		User           *ent.User `json:"user"`
 		FollowingCount int       `json:"following"`
 		FollowersCount int       `json:"followers"`
-	}
-
-	// Create the response object
-	res := UserResponse{
+	}{
 		User:           user,
-		FollowingCount: followingCount,
 		FollowersCount: followersCount,
+		FollowingCount: followingCount,
 	}
 
 	return c.JSON(http.StatusOK, res)
@@ -192,11 +201,16 @@ func (h UserHandler) GetFollowers(c echo.Context) error {
 	// Get the user id from request parameter
 	userID := c.Param("id")
 
-	// Query the followers of the user
-	followers, err := h.db.User.Query().
-		Where(user.ID(userID)).
-		QueryFollowers().
-		All(c.Request().Context())
+	// Cache key specific to user and followers
+	cacheKey := fmt.Sprintf("followers-%s", userID)
+
+	// Retrieve followers from cache or database
+	followers, err := h.cache.GetOrSet(c.Request().Context(), cacheKey, func(ctx context.Context) ([]*ent.User, error) {
+		return h.db.User.Query().
+			Where(user.ID(userID)).
+			QueryFollowers().
+			All(ctx)
+	})
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to fetch followers: " + err.Error()})
 	}
@@ -208,11 +222,16 @@ func (h UserHandler) GetFollowing(c echo.Context) error {
 	// Get the user id from request parameter
 	userID := c.Param("id")
 
-	// Query the list of users this user is following
-	following, err := h.db.User.Query().
-		Where(user.ID(userID)).
-		QueryFollowing().
-		All(c.Request().Context())
+	// Cache key specific to user and followers
+	cacheKey := fmt.Sprintf("following-%s", userID)
+
+	// Retrieve following from cache or database
+	following, err := h.cache.GetOrSet(c.Request().Context(), cacheKey, func(ctx context.Context) ([]*ent.User, error) {
+		return h.db.User.Query().
+			Where(user.ID(userID)).
+			QueryFollowing().
+			All(ctx)
+	})
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to fetch following: " + err.Error()})
 	}
@@ -220,9 +239,9 @@ func (h UserHandler) GetFollowing(c echo.Context) error {
 	return c.JSON(http.StatusOK, following)
 }
 
-func (h UserHandler) UpdateUser(c echo.Context) error {
-	// Get user id from request parameter
-	userID := c.Param("id")
+func (h UserHandler) UpdateUserProfile(c echo.Context) error {
+	// Get the user id from context
+	userID := c.Get("userID").(string)
 
 	// Bind the request data to UserRequest
 	var req requests.UserRequest
