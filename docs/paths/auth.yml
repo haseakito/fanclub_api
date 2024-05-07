@@ -1,0 +1,114 @@
+/auth/sign-up:
+  post:
+    summary: User registration
+    description: Allows a new user to create an account
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+                example: "Michael Jackson"
+              email:
+                type: string
+                format: email
+                example: "jackson@example.com"
+              password:
+                type: string
+                format: password
+                example: "generatedPassword12345"
+    responses:
+      "201":
+        description: User created successfully.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: "User created successfully."
+      "400":
+        description: Bad request if the request body is not correct.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  example: "Invalid request"
+      "500":
+        description: Internal server error while executing the database operation
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  example: "Failed to create user"
+
+/auth/sign-in:
+  post:
+    summary: User login
+    description: Allows an existing user to login
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              email:
+                type: string
+                format: email
+                example: "jackson@example.com"
+              password:
+                type: string
+                format: password
+                example: "generatedPassword12345"
+    responses:
+      "200":
+        description: Login successful.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+      "400":
+        description: Bad request if the request body is not correct.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  example: "Invalid request"
+      "401":
+        description: Unauthorized if the credentials are invalid.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  example: "Invalid email or password."
+      "500":
+        description: Internal server error while executing the database operation
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                error:
+                  type: string
+                  example: "Failed to create user"
