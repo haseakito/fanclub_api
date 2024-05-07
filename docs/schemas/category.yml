@@ -1,0 +1,20 @@
+Category:
+  type: object
+  required:
+    - name
+  properties:
+    id:
+      type: string
+      description: "Unique identifier for the category, immutable."
+      maxLength: 25
+    name:
+      type: string
+      description: "Name of the category, must be unique and not empty."
+    created_at:
+      type: string
+      format: date-time
+      description: "The date and time when the category was created. Defaults to the current date and time."
+    updated_at:
+      type: string
+      format: date-time
+      description: "The date and time when the category was last updated. Automatically updates to the current date and time when modified."
