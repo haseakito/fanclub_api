@@ -2,13 +2,17 @@ package main
 
 import (
 	"log"
+	"os"
 
-	sentryecho "github.com/getsentry/sentry-go/echo"
-	"github.com/hackgame-org/fanclub_api/config"
-	"github.com/hackgame-org/fanclub_api/handlers"
+	handlers "github.com/hackgame-org/fanclub_api/api/handler"
+	middlewares "github.com/hackgame-org/fanclub_api/api/middleware"
+	"github.com/hackgame-org/fanclub_api/internal/database"
+	"github.com/hackgame-org/fanclub_api/internal/redis"
+
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/muxinc/mux-go"
 )
 
 func init() {
@@ -21,52 +25,76 @@ func init() {
 
 func main() {
 	// Initialize ent client with mysql driver
-	db, _ := config.InitializeDB()
+	db, _ := database.Initialize()
 
-	// Initialize cloudinary client
-	cld, _ := config.InitializeCloudinary()
+	// Initialize redis client
+	rdb := redis.Initialize()
 
-	// Initialize sentry client
-	config.InitializeSentry()
+	// Initialize Mux client
+	mux := muxgo.NewAPIClient(
+		muxgo.NewConfiguration(
+			muxgo.WithBasicAuth(os.Getenv("MUX_TOKEN_ID"), os.Getenv("MUX_TOKEN_SECRET")),
+		))
 
 	// Initialize echo application
 	e := echo.New()
 
 	// Set up CORS config
-	e.Use(middleware.CORS())
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"http://localhost:3000", os.Getenv("FRONTEND_URL")},
+		AllowMethods: []string{echo.GET, echo.PUT, echo.POST, echo.DELETE, echo.OPTIONS},
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
+	}))
 
 	// Logging middleware
 	e.Use(middleware.RequestID())
 	e.Use(middleware.Logger())
-	e.Use(sentryecho.New(sentryecho.Options{}))
 
 	// API v1 group
 	r := e.Group("/api/v1")
 
+	// Auth group APIs
+	a := r.Group("/auth")
+	{
+		ah := handlers.NewAuthHandler(db)
+
+		a.POST("/sign-up", ah.Signup)
+		a.POST("/sign-in", ah.Signin)
+		a.POST("/verify-email", ah.VerifyEmail)
+		a.POST("/verify-email/resend", ah.VerifyEmail)
+		a.POST("/reset-password", ah.ResetPassword)
+		a.POST("/verify-reset-password", ah.VerifyPasswordReset)
+	}
+
 	// Users group APIs
 	u := r.Group("/users")
 	{
-		uh := handlers.NewUserHandler(db)
+		uh := handlers.NewUserHandler(db, rdb)
 
-		u.GET("", uh.GetUsers)
+		u.POST("/upload/profile_picture", uh.UploadProfilePicture, middlewares.AuthMiddleware)
+		u.POST("/:id/follow", uh.FollowUser)
+		u.POST("/:id/unfollow", uh.UnfollowUser)
+		u.GET("", uh.GetUsers, middlewares.AuthMiddleware)
 		u.GET("/:id", uh.GetUser)
-		u.GET("/:id/posts", uh.GetPostsByUserID)
-		u.PATCH("/:id", uh.UpdateUser)
+		u.GET("/:id/followers", uh.GetFollowers)
+		u.GET("/:id/following", uh.GetFollowing)
+		u.PATCH("/:id", uh.UpdateUserProfile)
+		u.DELETE("", uh.DeleteUser, middlewares.AuthMiddleware)
 	}
 
 	// Posts group APIs
 	p := r.Group("/posts")
 	{
 		// Initialize handler for posts
-		ph := handlers.NewPostHandler(db, cld)
+		ph := handlers.NewPostHandler(db, mux, rdb)
 
-		p.GET("", ph.GetPosts)
-		p.GET("/:id", ph.GetPostByID)
 		p.POST("", ph.CreatePost)
-		p.POST("/:id/upload", ph.UploadFiles)
+		p.POST("/:id/upload/video", ph.UploadVideo)
+		p.POST("/:id/upload/thumnail", ph.UploadThumnail)
+		p.GET("", ph.GetPosts)
+		p.GET("/:id", ph.GetPostByID)		
 		p.PATCH("/:id", ph.UpdatePost)
 		p.DELETE("/:id", ph.DeletePost)
-		p.DELETE("/:id/assets/:asset_id", ph.DeleteFile)
 	}
 
 	// Likes group APIs
@@ -78,23 +106,14 @@ func main() {
 		l.POST("/delete", lh.DeleteLike)
 	}
 
-	// Follows group APIs
-	f := r.Group("/follows")
-	{
-		fh := handlers.NewFollowHandler(db)
-
-		f.POST("/create", fh.CreateFollow)
-		f.POST("/delete", fh.DeleteFollow)
-	}
-
 	// Categories group APIs
 	c := r.Group("/categories")
 	{
 		ch := handlers.NewCategoryHandler(db)
 
+		c.POST("", ch.CreateCategories)
 		c.GET("", ch.GetCategories)
 		c.GET("/:id/posts", ch.GetPostsByCategoryID)
-		c.POST("", ch.CreateCategories)
 		c.DELETE("/:id", ch.DeleteCategory)
 	}
 
@@ -108,27 +127,6 @@ func main() {
 		s.POST("", sh.CreateSubscription)
 		s.PATCH("/:id", sh.UpdateSubscription)
 		s.DELETE("/:id", sh.DeleteSubscription)
-	}
-
-	// Billboards group APIs
-	b := r.Group("/billboards")
-	{
-		bh := handlers.NewBillboardHandler(db, cld)
-
-		b.GET("", bh.GetBillboards)
-		b.GET("/:id", bh.GetBillboard)
-		b.POST("", bh.CreateBillboard)
-		b.POST("/:id/upload", bh.UploadFile)
-		b.PATCH("/:id", bh.UpdateBillboard)
-		b.DELETE("/:id", bh.DeleteBillboard)
-	}
-
-	// Webhook group APIs
-	w := r.Group("/webhooks")
-	{
-		wh := handlers.NewWebhookHandler(db)
-
-		w.POST("/users", wh.ClerkWebhook)
 	}
 
 	// Start the server
