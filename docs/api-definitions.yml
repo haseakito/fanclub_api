@@ -7,24 +7,1212 @@ servers:
     description: Production server
 
 paths:
-  /auth:
-    $ref: "./paths/auth.yml"
+  /auth/sign-up:
+    post:
+      summary: User registration
+      tags:
+        - auth
+      description: Allows a new user to create an account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Michael Jackson"
+                email:
+                  type: string
+                  format: email
+                  example: "jackson@example.com"
+                password:
+                  type: string
+                  format: password
+                  example: "generatedPassword12345"
+      responses:
+        "201":
+          description: User created successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User created successfully."
+        "400":
+          description: Bad request if the request body is not correct.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid request"
+        "500":
+          description: Internal server error while executing the database operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to create user"
+
+  /auth/sign-in:
+    post:
+      summary: User login
+      tags:
+        - auth
+      description: Allows an existing user to login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "jackson@example.com"
+                password:
+                  type: string
+                  format: password
+                  example: "generatedPassword12345"
+      responses:
+        "200":
+          description: Login successful.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+                  userId:
+                    type: string
+                    example: "user-clvuk13be0001winzqsx3n8h5"
+
+        "400":
+          description: Bad request if the request body is not correct.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid request"
+        "401":
+          description: Unauthorized if the credentials are invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid email or password."
+        "500":
+          description: Internal server error while executing the database operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to create user"
+
+  /auth/verify-email:
+    post:
+      summary: Verify a user's email
+      tags:
+        - auth
+      description: Verifies a user's email by checking a provided verification code against the stored one.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "jackson@example.com"
+                code:
+                  type: string
+                  example: "678260"
+      responses:
+        "200":
+          description: Email verified successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Successfully verified this email"
+        "400":
+          description: Bad request if the request body is not correct.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Invalid request or incorrect data format."
+        "404":
+          description: Verification token not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Verification token not found."
+        "500":
+          description: Internal server error, such as token expired or incorrect verification code.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Verification code has expired or incorrect verification code."
+
+  /auth/verify-email/resend:
+    post:
+      summary: Resend email verification token
+      tags:
+        - auth
+      description: Resends the email verification token to a user's email if the previous token was not received or has expired.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "jackson@example.com"
+      responses:
+        "200":
+          description: Verification token resent successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Successfully resend verification token"
+        "400":
+          description: Bad request, such as invalid input or failed validation.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Invalid request or failed validation"
+        "404":
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User not found"
+        "500":
+          description: Internal server error, such as failed token creation or email sending issues.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Failed to generate verification code or create password reset code"
+
+  /auth/reset-password:
+    post:
+      summary: Reset user password
+      tags:
+        - auth
+      description: Initiates a password reset process for a user by sending an email with a verification code or a password reset link.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "jackson@example.com"
+      responses:
+        "200":
+          description: Email with password reset instructions sent successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Successfully sent password reset email"
+        "400":
+          description: Bad request, such as invalid input or failed validation.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Invalid request or failed validation"
+        "404":
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User not found"
+        "500":
+          description: Internal server error, such as failed to generate or create a verification token.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Failed to generate verification code or create password reset code"
+
+  /auth/verify-reset-password:
+    post:
+      summary: Verify password reset code and update password
+      tags:
+        - auth
+      description: Verifies the password reset code sent to the user's email, updates the password if the code is valid, and removes the temporary verification token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "jackson@example.com"
+                  description: The email address associated with the user account.
+                code:
+                  type: string
+                  example: "678260"
+                  description: The verification code sent to the user's email.
+                password:
+                  type: string
+                  format: password
+                  example: "generatedPassword12345"
+                  description: The new password to be set for the user.
+      responses:
+        "200":
+          description: Password successfully reset.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Successfully reset password"
+        "400":
+          description: Bad request, such as invalid input or failed validation.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Invalid request or incorrect data format."
+        "404":
+          description: Verification token not found or user not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User or verification token not found."
+        "500":
+          description: Internal server error, such as token expired, incorrect verification code, or database errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Verification code has expired, incorrect verification code, or database error."
+
+  /users/upload/profile_picture:
+    post:
+      summary: Upload a profile picture
+      security:
+        - bearerAuth: []
+      tags:
+        - user
+      description: Allows a user to upload a profile picture.
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The image file to upload as a profile picture.
+      responses:
+        "200":
+          description: Profile picture uploaded successfully, no content to return.
+        "400":
+          description: Bad request, such as if no file is provided.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to upload file."
+
+  /users/{id}/follow:
+    post:
+      summary: Follow a user
+      security:
+        - bearerAuth: []
+      tags:
+        - user
+      description: Allows a user to follow another user.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            description: The unique identifier of the user to follow.
+      responses:
+        "200":
+          description: User followed successfully, no content returned.
+        "500":
+          description: User follow unsuccessful.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to follow user."
+
+  /users/{id}/unfollow:
+    post:
+      summary: Unfollow a user
+      security:
+        - bearerAuth: []
+      tags:
+        - user
+      description: Allows a user to unfollow another user.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            description: The unique identifier of the user to unfollow.
+      responses:
+        "200":
+          description: User unfollowed successfully, no content returned.
+        "500":
+          description: User unfollow unsuccessful.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to unfollow user."
   /users:
-    $ref: "./paths/users.yml"
-  /likes:
-    $ref: "./paths/likes.yml"
+    get:
+      summary: Get a list of users
+      tags:
+        - user
+      description: Retrieves a list of users, filtered by limit and pagination.
+      parameters:
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            default: 10
+          description: Maximum number of users to return at one time (default is 10).
+        - in: query
+          name: offset
+          required: false
+          schema:
+            type: integer
+            default: 0
+          description: The initial index from which to return the results.
+      responses:
+        "200":
+          description: A list of users.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        "400":
+          description: Bad request parameters.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Failed to parse pagination limit or offset"
+        "500":
+          description: Internal server error, failed to fetch posts.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Failed to fetch posts: [error details]"
+
+  /users/{id}:
+    get:
+      summary: Get user by ID
+      tags:
+        - user
+      description: Retrieves detailed information about a specific user based on their unique ID.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the user.
+      responses:
+        "200":
+          description: Detailed user information.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "User not found."
+    delete:
+      summary: Delete a user
+      security:
+        - bearerAuth: []
+      tags:
+        - user
+      description: Deletes a user account after verifying that all associated posts are deleted. Requires the user to be authenticated and will optionally delete the user's profile image if one exists.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the user.
+      responses:
+        "204":
+          description: User deleted successfully.
+        "400":
+          description: User has posts and must delete them before deleting their account.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "You must delete your posts before deleting the account"
+        "404":
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User not found"
+        "500":
+          description: Internal server error, such as failure in deleting user's profile image or the user itself.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Failed to delete the user or user profile image"
+
+  /users/{id}/followers:
+    get:
+      summary: Get followers of the user
+      tags:
+        - user
+      description: Retrieves a list of users who follow the specified user.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the user whose followers are being requested.
+      responses:
+        "200":
+          description: A list of followers.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+
+  /users/{id}/following:
+    get:
+      summary: Get users followed by the user
+      tags:
+        - user
+      description: Retrieves a list of users that the specified user is following.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the user whose following list is being requested.
+      responses:
+        "200":
+          description: A list of users being followed.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+
+  /likes/create:
+    post:
+      summary: Create a like
+      security:
+        - bearerAuth: []
+      tags:
+        - like
+      description: Allows a user to like a post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: string
+                  description: The unique identifier of the user liking the post.
+                  example: "user-clvuk13be0001winzqsx3n8h5"
+                post_id:
+                  type: string
+                  description: The unique identifier of the post to be liked.
+                  example: "post-clvwcht6m002y6aubd4cy9nhn"
+      responses:
+        "200":
+          description: Like created successfully, no content to return.
+        "400":
+          description: Bad request if the request body is not correct.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid request data."
+        "500":
+          description: Failed to create a like.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to create like"
+
+  /likes/delete:
+    post:
+      summary: Delete a like
+      security:
+        - bearerAuth: []
+      tags:
+        - like
+      description: Allows a user to remove a like from a post.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: string
+                  description: The unique identifier of the user liking the post.
+                  example: "user-clvuk13be0001winzqsx3n8h5"
+                post_id:
+                  type: string
+                  description: The unique identifier of the post to be liked.
+                  example: "post-clvwcht6m002y6aubd4cy9nhn"
+      responses:
+        "200":
+          description: Like deleted successfully.
+        "400":
+          description: Bad request if the request body is not correct.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid request data."
+        "500":
+          description: Failed to remove a like.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to delete like"
+
   /posts:
-    $ref: "./paths/posts.yml"
+    post:
+      summary: Create a new post
+      security:
+        - bearerAuth: []
+      tags:
+        - post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: "Shaver Cool Biometric"
+                user_id:
+                  type: string
+                  example: "user-clvuk13be0001winzqsx3n8h5"
+      responses:
+        "200":
+          description: Post created successfully.
+        "400":
+          description: Bad request if the request body is not correct.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid request"
+    get:
+      summary: Get a list of posts
+      tags:
+        - post
+      description: Retrieves a list of posts, filtered by user and paginated.
+      parameters:
+        - in: query
+          name: userId
+          required: false
+          schema:
+            type: string
+          description: The user ID to filter posts by.
+          example: "user-clvuk13be0001winzqsx3n8h5"
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+          description: The maximum number of posts to return at one time. Defaults to 10.
+        - in: query
+          name: offset
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          description: The offset from which to start listing the posts.
+      responses:
+        "200":
+          description: An array of posts.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Post"
+        "400":
+          description: Bad request parameters.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Failed to parse pagination limit or offset"
+
+  /posts/{id}:
+    get:
+      summary: Get a post by ID
+      tags:
+        - post
+      description: Retrieves detailed information about a specific post including associated user details, categories, total likes, and whether the current user has liked the post.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: The unique identifier of the post.
+          example: "post-clvwcht6m002y6aubd4cy9nhn"
+      responses:
+        "200":
+          description: Detailed information about the post.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  post:
+                    $ref: "#/components/schemas/Post"
+                  user:
+                    $ref: "#/components/schemas/User"
+                  likes:
+                    type: integer
+                    description: The total number of likes this post has received.
+                  userLiked:
+                    type: boolean
+                    description: A boolean flag indicating whether the current user has liked the post.
+        "404":
+          description: Post not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Post not found"
+        "500":
+          description: Internal server error, such as database errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Failed to fetch post data"
+
+    patch:
+      summary: Update a post
+      security:
+        - bearerAuth: []
+      tags:
+        - post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: "Shaver Cool Biometric"
+                description:
+                  type: string
+                  example: "Our hers many somebody hourly fortnightly as indeed bale how of normally upon aha shall everyone anybody mine with homeless some Gaussian those cautiously which me swallow of Shakespearean problem Sudanese one pout of sew currency way alas less enough."
+                price:
+                  type: integer
+                  example: 200
+                is_featured:
+                  type: boolean
+                status:
+                  type: boolean
+      responses:
+        "200":
+          description: Post updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "400":
+          description: Invalid input provided.
+
+    delete:
+      summary: Delete a post
+      security:
+        - bearerAuth: []
+      tags:
+        - post
+      responses:
+        "200":
+          description: Post deleted successfully.
+        "404":
+          description: Post not found.
+
+  /posts/{id}/upload/video:
+    post:
+      summary: Upload a video for a post
+      security:
+        - bearerAuth: []
+      tags:
+        - post
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                video:
+                  type: string
+                  format: binary
+                  description: Video file to upload
+      responses:
+        "200":
+          description: Video uploaded successfully.
+        "400":
+          description: Invalid request.
+        "404":
+          description: Post not found.
+        "500":
+          description: Internal server error.
+
+  /posts/{id}/upload/thumbnail:
+    post:
+      summary: Upload a thumbnail for a post
+      security:
+        - bearerAuth: []
+      tags:
+        - post
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                video:
+                  type: string
+                  format: binary
+                  description: Thumnail image to upload
+      responses:
+        "200":
+          description: Thumnail image uploaded successfully.
+        "400":
+          description: Invalid request.
+        "404":
+          description: Post not found.
+        "500":
+          description: Internal server error.
+
   /categories:
-    $ref: "./paths/categories.yml"
+    post:
+      summary: Create a new category
+      security:
+        - bearerAuth: []
+      tags:
+        - category
+      description: Allows creation of a new category.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  description: Name of the category.
+      responses:
+        "201":
+          description: Category created successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: The unique identifier of the newly created category.
+                  name:
+                    type: string
+                    description: The name of the newly created category.
+        "500":
+          description: Failed to create a new category.
+
+    get:
+      summary: Get all categories
+      tags:
+        - category
+      description: Retrieves a list of all categories.
+      responses:
+        "200":
+          description: A list of categories.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+
+  /categories/{id}/posts:
+    get:
+      summary: Get posts by category ID
+      tags:
+        - category
+      description: Retrieves posts associated with a specific category.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            description: The unique identifier of the category.
+      responses:
+        "200":
+          description: A list of posts in the specified category.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Post"
+        "404":
+          description: Category not found.
+
+  /categories/{id}:
+    delete:
+      summary: Delete a category
+      security:
+        - bearerAuth: []
+      tags:
+        - category
+      description: Deletes a category by its ID.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            description: The unique identifier of the category.
+      responses:
+        "200":
+          description: Successfully delete the category
+        "500":
+          description: Failed to delete category.
 
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   schemas:
     User:
-      $ref: "./schemas/user.yml"
-    Category:
-      $ref: "./schemas/category.yml"
+      type: object
+      properties:
+        id:
+          type: string
+          description: The unique identifier of the user.
+        name:
+          type: string
+          description: The name of the user.
+        username:
+          type: string
+          description: The username of the user, automatically assigned a CUID if not provided.
+        stripe_customer_id:
+          type: string
+          nullable: true
+          description: Optional Stripe customer ID for the user.
+        url:
+          type: string
+          nullable: true
+          description: Optional URL associated with the user.
+        email:
+          type: string
+          description: The user's email address.
+        email_verified:
+          type: boolean
+          default: false
+          description: Flag indicating whether the user's email address has been verified.
+        bio:
+          type: string
+          description: A brief biography of the user.
+        profile_image_url:
+          type: string
+          nullable: true
+          description: Optional URL to the user's profile image.
+        created_at:
+          type: string
+          format: date-time
+          default: "Current Timestamp"
+          description: Timestamp when the user account was created.
+        updated_at:
+          type: string
+          format: date-time
+          default: "Current Timestamp"
+          description: Timestamp when the user account was last updated, automatically updated to current timestamp on modification.
+
     Post:
-      $ref: "./schemas/post.yml"
+      type: object
+      required:
+        - id
+        - title
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: "Unique identifier for the post."
+        title:
+          type: string
+          description: "Title of the post."
+        description:
+          type: string
+          nullable: true
+          description: "Detailed description of the post. Optional."
+        thumbnail_url:
+          type: string
+          description: "URL of the thumbnail image for the post. Optional."
+        video_url:
+          type: string
+          description: "URL of the video. Optional."
+        mux_asset_id:
+          type: string
+          nullable: true
+          description: "Mux Asset ID that can be used to reference videos within Mux. Optional."
+        mux_playback_id:
+          type: string
+          nullable: true
+          description: "Mux Playback ID used to play the video through Mux's CDN. Optional."
+        price:
+          type: integer
+          nullable: true
+          description: "Price of the video in cents. A value of 0 or null (if allowed) indicates the video is free."
+        is_featured:
+          type: boolean
+          default: false
+          description: "Indicates if the post is featured. Defaults to false. Nillable."
+        status:
+          type: boolean
+          default: false
+          description: "Status of the post, typically true for active. Defaults to false. Nillable."
+        created_at:
+          type: string
+          format: date-time
+          description: "The date and time when the post was created. Defaults to the current time."
+        updated_at:
+          type: string
+          format: date-time
+          description: "The date and time when the post was last updated. Automatically updates when the post is modified."
+
+    Category:
+      type: object
+      required:
+        - name
+      properties:
+        id:
+          type: string
+          description: "Unique identifier for the category, immutable."
+          maxLength: 25
+        name:
+          type: string
+          description: "Name of the category, must be unique and not empty."
+        created_at:
+          type: string
+          format: date-time
+          description: "The date and time when the category was created. Defaults to the current date and time."
+        updated_at:
+          type: string
+          format: date-time
+          description: "The date and time when the category was last updated. Automatically updates to the current date and time when modified."
+
     Like:
-      $ref: "./schemas/like.yml"
+      type: object
+      properties:
+        postId:
+          type: string
+          description: The unique identifier of the post that was liked.
+        userId:
+          type: string
+          description: The unique identifier of the user who made the like.
+        created_at:
+          type: string
+          format: date-time
+          default: "Current Timestamp"
+          description: Timestamp when the user account was created.
