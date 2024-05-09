@@ -9,6 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.53.1
 	github.com/aws/aws-sdk-go-v2/service/sesv2 v1.29.0
 	github.com/brianvoe/gofakeit/v6 v6.28.0
+	github.com/drexedam/gravatar v0.0.0-20210327211422-e94eea8c338e
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/golang-jwt/jwt v3.2.2+incompatible
