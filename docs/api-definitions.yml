@@ -68,7 +68,7 @@ paths:
       summary: User login
       tags:
         - auth
-      description: Allows an existing user to login
+      description: Allows an existing user to login.
       requestBody:
         required: true
         content:
@@ -92,12 +92,12 @@ paths:
               schema:
                 type: object
                 properties:
+                  message:
+                    type: string
+                    example: "Successfully signed in."
                   token:
                     type: string
                     example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
-                  userId:
-                    type: string
-                    example: "user-clvuk13be0001winzqsx3n8h5"
 
         "400":
           description: Bad request if the request body is not correct.
@@ -400,8 +400,8 @@ paths:
       responses:
         "200":
           description: Profile picture uploaded successfully, no content to return.
-        "400":
-          description: Bad request, such as if no file is provided.
+        "500":
+          description: Internal server error - failed to upload a file.
           content:
             application/json:
               schema:
@@ -518,6 +518,118 @@ paths:
                   message:
                     type: string
                     example: "Failed to fetch posts: [error details]"
+
+  /users/update/profile:
+    patch:
+      summary: Update user's profile
+      tags:
+        - user
+      description: Updates the profile information for a user such as name, bio, and social link.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  example: Michael Jackson
+                bio:
+                  type: string
+                  maxLength: 1000
+                  example: Explorer of virtual vistas and real-world mountains alike, I spend my days weaving through codes and nights under stars. An ardent lover of coffee and conversations, I believe every cat has a secret, and every book hides a universe. When not in front of a screen, you'll find me sketching out my next big adventure or lost in the melodies of forgotten songs. Dreamer, doer, and occasional philosopher, chasing light, capturing moments, and coding dreams into reality
+                url:
+                  type: string
+                  format: uri
+      responses:
+        "200":
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Bad request, such as invalid input or failed validation.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Invalid request"
+        "500":
+          description: Internal server error - Failed to update user profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Failed to update user profile"
+
+  /users/update/account:
+    patch:
+      summary: Update user's account
+      tags:
+        - user
+      description: Updates the account details for a user, including username, email, and date of birth.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - email
+                - dob
+              properties:
+                username:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  example: "johndoe2024"
+                email:
+                  type: string
+                  format: email
+                  example: "jackson@example.com"
+                dob:
+                  type: string
+                  format: date
+                  description: Date of birth in YYYY-MM-DD format
+                  example: "1985-10-25"
+      responses:
+        "200":
+          description: Account updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Bad request, such as invalid input or failed validation.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Invalid request"
+        "500":
+          description: Internal server error - Failed to update user account
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Failed to update user account"
 
   /users/{id}:
     get:
@@ -658,11 +770,7 @@ paths:
             schema:
               type: object
               properties:
-                user_id:
-                  type: string
-                  description: The unique identifier of the user liking the post.
-                  example: "user-clvuk13be0001winzqsx3n8h5"
-                post_id:
+                postId:
                   type: string
                   description: The unique identifier of the post to be liked.
                   example: "post-clvwcht6m002y6aubd4cy9nhn"
@@ -705,11 +813,7 @@ paths:
             schema:
               type: object
               properties:
-                user_id:
-                  type: string
-                  description: The unique identifier of the user liking the post.
-                  example: "user-clvuk13be0001winzqsx3n8h5"
-                post_id:
+                postId:
                   type: string
                   description: The unique identifier of the post to be liked.
                   example: "post-clvwcht6m002y6aubd4cy9nhn"
@@ -819,6 +923,16 @@ paths:
                   message:
                     type: string
                     example: "Failed to parse pagination limit or offset"
+        "500":
+          description: Internal server error, such as database errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Failed to fetch posts."
 
   /posts/{id}:
     get:
@@ -860,8 +974,8 @@ paths:
                 type: object
                 properties:
                   message:
-                    type: string
-                    example: "Post not found"
+                    type: object
+                    example: "The post not found"
         "500":
           description: Internal server error, such as database errors.
           content:
@@ -871,7 +985,7 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Failed to fetch post data"
+                    example: "Failed to fetch post data."
 
     patch:
       summary: Update a post
@@ -908,6 +1022,14 @@ paths:
                 $ref: "#/components/schemas/Post"
         "400":
           description: Invalid input provided.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Invalid request data."
 
     delete:
       summary: Delete a post
@@ -944,10 +1066,35 @@ paths:
           description: Video uploaded successfully.
         "400":
           description: Invalid request.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Invalid request data."
         "404":
           description: Post not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "The post not found."
+
         "500":
           description: Internal server error.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Failed to upload video."
 
   /posts/{id}/upload/thumbnail:
     post:
@@ -972,10 +1119,35 @@ paths:
           description: Thumnail image uploaded successfully.
         "400":
           description: Invalid request.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Invalid request data."
         "404":
           description: Post not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "The post not found."
+
         "500":
           description: Internal server error.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Failed to upload thumnail."
 
   /categories:
     post:
@@ -1013,6 +1185,14 @@ paths:
                     description: The name of the newly created category.
         "500":
           description: Failed to create a new category.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Failed to create a category."
 
     get:
       summary: Get all categories
@@ -1053,6 +1233,14 @@ paths:
                   $ref: "#/components/schemas/Post"
         "404":
           description: Category not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "The category not found."
 
   /categories/{id}:
     delete:
@@ -1095,6 +1283,10 @@ components:
         username:
           type: string
           description: The username of the user, automatically assigned a CUID if not provided.
+        profile_image_url:
+          type: string
+          nullable: true
+          description: Optional URL to the user's profile image.
         stripe_customer_id:
           type: string
           nullable: true
@@ -1112,11 +1304,12 @@ components:
           description: Flag indicating whether the user's email address has been verified.
         bio:
           type: string
+          nullable: true
           description: A brief biography of the user.
-        profile_image_url:
+        dob:
           type: string
           nullable: true
-          description: Optional URL to the user's profile image.
+          description: Date of birth of the user.
         created_at:
           type: string
           format: date-time
