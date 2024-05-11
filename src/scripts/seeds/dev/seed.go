@@ -98,7 +98,7 @@ func GenerateRandomPosts(client *ent.Client, user *ent.User, count int) error {
 				Create().
 				SetTitle(gofakeit.ProductName()).
 				SetDescription(gofakeit.Sentence(gofakeit.Number(30, 50))).
-				SetPrice(int(gofakeit.Price(0, 1000))).
+				SetPrice(int64(gofakeit.Price(0, 1000))).
 				SetThumbnailURL(gofakeit.ImageURL(1000, 1000)).
 				SetUser(user).
 				Save(ctx)
