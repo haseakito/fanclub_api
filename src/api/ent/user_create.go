@@ -44,6 +44,20 @@ func (uc *UserCreate) SetNillableUsername(s *string) *UserCreate {
 	return uc
 }
 
+// SetProfileImageURL sets the "profile_image_url" field.
+func (uc *UserCreate) SetProfileImageURL(s string) *UserCreate {
+	uc.mutation.SetProfileImageURL(s)
+	return uc
+}
+
+// SetNillableProfileImageURL sets the "profile_image_url" field if the given value is not nil.
+func (uc *UserCreate) SetNillableProfileImageURL(s *string) *UserCreate {
+	if s != nil {
+		uc.SetProfileImageURL(*s)
+	}
+	return uc
+}
+
 // SetStripeCustomerID sets the "stripe_customer_id" field.
 func (uc *UserCreate) SetStripeCustomerID(s string) *UserCreate {
 	uc.mutation.SetStripeCustomerID(s)
@@ -112,16 +126,16 @@ func (uc *UserCreate) SetNillableBio(s *string) *UserCreate {
 	return uc
 }
 
-// SetProfileImageURL sets the "profile_image_url" field.
-func (uc *UserCreate) SetProfileImageURL(s string) *UserCreate {
-	uc.mutation.SetProfileImageURL(s)
+// SetDob sets the "dob" field.
+func (uc *UserCreate) SetDob(s string) *UserCreate {
+	uc.mutation.SetDob(s)
 	return uc
 }
 
-// SetNillableProfileImageURL sets the "profile_image_url" field if the given value is not nil.
-func (uc *UserCreate) SetNillableProfileImageURL(s *string) *UserCreate {
+// SetNillableDob sets the "dob" field if the given value is not nil.
+func (uc *UserCreate) SetNillableDob(s *string) *UserCreate {
 	if s != nil {
-		uc.SetProfileImageURL(*s)
+		uc.SetDob(*s)
 	}
 	return uc
 }
@@ -390,6 +404,10 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 		_spec.SetField(user.FieldUsername, field.TypeString, value)
 		_node.Username = value
 	}
+	if value, ok := uc.mutation.ProfileImageURL(); ok {
+		_spec.SetField(user.FieldProfileImageURL, field.TypeString, value)
+		_node.ProfileImageURL = value
+	}
 	if value, ok := uc.mutation.StripeCustomerID(); ok {
 		_spec.SetField(user.FieldStripeCustomerID, field.TypeString, value)
 		_node.StripeCustomerID = value
@@ -414,9 +432,9 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 		_spec.SetField(user.FieldBio, field.TypeString, value)
 		_node.Bio = value
 	}
-	if value, ok := uc.mutation.ProfileImageURL(); ok {
-		_spec.SetField(user.FieldProfileImageURL, field.TypeString, value)
-		_node.ProfileImageURL = value
+	if value, ok := uc.mutation.Dob(); ok {
+		_spec.SetField(user.FieldDob, field.TypeString, value)
+		_node.Dob = &value
 	}
 	if value, ok := uc.mutation.CreatedAt(); ok {
 		_spec.SetField(user.FieldCreatedAt, field.TypeTime, value)

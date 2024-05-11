@@ -3251,13 +3251,14 @@ type UserMutation struct {
 	id                        *string
 	name                      *string
 	username                  *string
+	profile_image_url         *string
 	stripe_customer_id        *string
 	password                  *string
 	url                       *string
 	email                     *string
 	email_verified            *bool
 	bio                       *string
-	profile_image_url         *string
+	dob                       *string
 	created_at                *time.Time
 	updated_at                *time.Time
 	clearedFields             map[string]struct{}
@@ -3457,6 +3458,55 @@ func (m *UserMutation) OldUsername(ctx context.Context) (v string, err error) {
 // ResetUsername resets all changes to the "username" field.
 func (m *UserMutation) ResetUsername() {
 	m.username = nil
+}
+
+// SetProfileImageURL sets the "profile_image_url" field.
+func (m *UserMutation) SetProfileImageURL(s string) {
+	m.profile_image_url = &s
+}
+
+// ProfileImageURL returns the value of the "profile_image_url" field in the mutation.
+func (m *UserMutation) ProfileImageURL() (r string, exists bool) {
+	v := m.profile_image_url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProfileImageURL returns the old "profile_image_url" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldProfileImageURL(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProfileImageURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProfileImageURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProfileImageURL: %w", err)
+	}
+	return oldValue.ProfileImageURL, nil
+}
+
+// ClearProfileImageURL clears the value of the "profile_image_url" field.
+func (m *UserMutation) ClearProfileImageURL() {
+	m.profile_image_url = nil
+	m.clearedFields[user.FieldProfileImageURL] = struct{}{}
+}
+
+// ProfileImageURLCleared returns if the "profile_image_url" field was cleared in this mutation.
+func (m *UserMutation) ProfileImageURLCleared() bool {
+	_, ok := m.clearedFields[user.FieldProfileImageURL]
+	return ok
+}
+
+// ResetProfileImageURL resets all changes to the "profile_image_url" field.
+func (m *UserMutation) ResetProfileImageURL() {
+	m.profile_image_url = nil
+	delete(m.clearedFields, user.FieldProfileImageURL)
 }
 
 // SetStripeCustomerID sets the "stripe_customer_id" field.
@@ -3714,53 +3764,53 @@ func (m *UserMutation) ResetBio() {
 	delete(m.clearedFields, user.FieldBio)
 }
 
-// SetProfileImageURL sets the "profile_image_url" field.
-func (m *UserMutation) SetProfileImageURL(s string) {
-	m.profile_image_url = &s
+// SetDob sets the "dob" field.
+func (m *UserMutation) SetDob(s string) {
+	m.dob = &s
 }
 
-// ProfileImageURL returns the value of the "profile_image_url" field in the mutation.
-func (m *UserMutation) ProfileImageURL() (r string, exists bool) {
-	v := m.profile_image_url
+// Dob returns the value of the "dob" field in the mutation.
+func (m *UserMutation) Dob() (r string, exists bool) {
+	v := m.dob
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldProfileImageURL returns the old "profile_image_url" field's value of the User entity.
+// OldDob returns the old "dob" field's value of the User entity.
 // If the User object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *UserMutation) OldProfileImageURL(ctx context.Context) (v string, err error) {
+func (m *UserMutation) OldDob(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldProfileImageURL is only allowed on UpdateOne operations")
+		return v, errors.New("OldDob is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldProfileImageURL requires an ID field in the mutation")
+		return v, errors.New("OldDob requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldProfileImageURL: %w", err)
+		return v, fmt.Errorf("querying old value for OldDob: %w", err)
 	}
-	return oldValue.ProfileImageURL, nil
+	return oldValue.Dob, nil
 }
 
-// ClearProfileImageURL clears the value of the "profile_image_url" field.
-func (m *UserMutation) ClearProfileImageURL() {
-	m.profile_image_url = nil
-	m.clearedFields[user.FieldProfileImageURL] = struct{}{}
+// ClearDob clears the value of the "dob" field.
+func (m *UserMutation) ClearDob() {
+	m.dob = nil
+	m.clearedFields[user.FieldDob] = struct{}{}
 }
 
-// ProfileImageURLCleared returns if the "profile_image_url" field was cleared in this mutation.
-func (m *UserMutation) ProfileImageURLCleared() bool {
-	_, ok := m.clearedFields[user.FieldProfileImageURL]
+// DobCleared returns if the "dob" field was cleared in this mutation.
+func (m *UserMutation) DobCleared() bool {
+	_, ok := m.clearedFields[user.FieldDob]
 	return ok
 }
 
-// ResetProfileImageURL resets all changes to the "profile_image_url" field.
-func (m *UserMutation) ResetProfileImageURL() {
-	m.profile_image_url = nil
-	delete(m.clearedFields, user.FieldProfileImageURL)
+// ResetDob resets all changes to the "dob" field.
+func (m *UserMutation) ResetDob() {
+	m.dob = nil
+	delete(m.clearedFields, user.FieldDob)
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -4178,12 +4228,15 @@ func (m *UserMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UserMutation) Fields() []string {
-	fields := make([]string, 0, 11)
+	fields := make([]string, 0, 12)
 	if m.name != nil {
 		fields = append(fields, user.FieldName)
 	}
 	if m.username != nil {
 		fields = append(fields, user.FieldUsername)
+	}
+	if m.profile_image_url != nil {
+		fields = append(fields, user.FieldProfileImageURL)
 	}
 	if m.stripe_customer_id != nil {
 		fields = append(fields, user.FieldStripeCustomerID)
@@ -4203,8 +4256,8 @@ func (m *UserMutation) Fields() []string {
 	if m.bio != nil {
 		fields = append(fields, user.FieldBio)
 	}
-	if m.profile_image_url != nil {
-		fields = append(fields, user.FieldProfileImageURL)
+	if m.dob != nil {
+		fields = append(fields, user.FieldDob)
 	}
 	if m.created_at != nil {
 		fields = append(fields, user.FieldCreatedAt)
@@ -4224,6 +4277,8 @@ func (m *UserMutation) Field(name string) (ent.Value, bool) {
 		return m.Name()
 	case user.FieldUsername:
 		return m.Username()
+	case user.FieldProfileImageURL:
+		return m.ProfileImageURL()
 	case user.FieldStripeCustomerID:
 		return m.StripeCustomerID()
 	case user.FieldPassword:
@@ -4236,8 +4291,8 @@ func (m *UserMutation) Field(name string) (ent.Value, bool) {
 		return m.EmailVerified()
 	case user.FieldBio:
 		return m.Bio()
-	case user.FieldProfileImageURL:
-		return m.ProfileImageURL()
+	case user.FieldDob:
+		return m.Dob()
 	case user.FieldCreatedAt:
 		return m.CreatedAt()
 	case user.FieldUpdatedAt:
@@ -4255,6 +4310,8 @@ func (m *UserMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldName(ctx)
 	case user.FieldUsername:
 		return m.OldUsername(ctx)
+	case user.FieldProfileImageURL:
+		return m.OldProfileImageURL(ctx)
 	case user.FieldStripeCustomerID:
 		return m.OldStripeCustomerID(ctx)
 	case user.FieldPassword:
@@ -4267,8 +4324,8 @@ func (m *UserMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldEmailVerified(ctx)
 	case user.FieldBio:
 		return m.OldBio(ctx)
-	case user.FieldProfileImageURL:
-		return m.OldProfileImageURL(ctx)
+	case user.FieldDob:
+		return m.OldDob(ctx)
 	case user.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case user.FieldUpdatedAt:
@@ -4295,6 +4352,13 @@ func (m *UserMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUsername(v)
+		return nil
+	case user.FieldProfileImageURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProfileImageURL(v)
 		return nil
 	case user.FieldStripeCustomerID:
 		v, ok := value.(string)
@@ -4338,12 +4402,12 @@ func (m *UserMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetBio(v)
 		return nil
-	case user.FieldProfileImageURL:
+	case user.FieldDob:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetProfileImageURL(v)
+		m.SetDob(v)
 		return nil
 	case user.FieldCreatedAt:
 		v, ok := value.(time.Time)
@@ -4389,6 +4453,9 @@ func (m *UserMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *UserMutation) ClearedFields() []string {
 	var fields []string
+	if m.FieldCleared(user.FieldProfileImageURL) {
+		fields = append(fields, user.FieldProfileImageURL)
+	}
 	if m.FieldCleared(user.FieldStripeCustomerID) {
 		fields = append(fields, user.FieldStripeCustomerID)
 	}
@@ -4398,8 +4465,8 @@ func (m *UserMutation) ClearedFields() []string {
 	if m.FieldCleared(user.FieldBio) {
 		fields = append(fields, user.FieldBio)
 	}
-	if m.FieldCleared(user.FieldProfileImageURL) {
-		fields = append(fields, user.FieldProfileImageURL)
+	if m.FieldCleared(user.FieldDob) {
+		fields = append(fields, user.FieldDob)
 	}
 	return fields
 }
@@ -4415,6 +4482,9 @@ func (m *UserMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *UserMutation) ClearField(name string) error {
 	switch name {
+	case user.FieldProfileImageURL:
+		m.ClearProfileImageURL()
+		return nil
 	case user.FieldStripeCustomerID:
 		m.ClearStripeCustomerID()
 		return nil
@@ -4424,8 +4494,8 @@ func (m *UserMutation) ClearField(name string) error {
 	case user.FieldBio:
 		m.ClearBio()
 		return nil
-	case user.FieldProfileImageURL:
-		m.ClearProfileImageURL()
+	case user.FieldDob:
+		m.ClearDob()
 		return nil
 	}
 	return fmt.Errorf("unknown User nullable field %s", name)
@@ -4440,6 +4510,9 @@ func (m *UserMutation) ResetField(name string) error {
 		return nil
 	case user.FieldUsername:
 		m.ResetUsername()
+		return nil
+	case user.FieldProfileImageURL:
+		m.ResetProfileImageURL()
 		return nil
 	case user.FieldStripeCustomerID:
 		m.ResetStripeCustomerID()
@@ -4459,8 +4532,8 @@ func (m *UserMutation) ResetField(name string) error {
 	case user.FieldBio:
 		m.ResetBio()
 		return nil
-	case user.FieldProfileImageURL:
-		m.ResetProfileImageURL()
+	case user.FieldDob:
+		m.ResetDob()
 		return nil
 	case user.FieldCreatedAt:
 		m.ResetCreatedAt()

@@ -44,7 +44,7 @@ var (
 				Symbol:     "likes_users_likes",
 				Columns:    []*schema.Column{LikesColumns[3]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
-				OnDelete:   schema.SetNull,
+				OnDelete:   schema.Cascade,
 			},
 		},
 	}
@@ -100,7 +100,7 @@ var (
 				Symbol:     "subscriptions_users_subscriptions",
 				Columns:    []*schema.Column{SubscriptionsColumns[8]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
-				OnDelete:   schema.SetNull,
+				OnDelete:   schema.Cascade,
 			},
 		},
 	}
@@ -108,14 +108,15 @@ var (
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true},
 		{Name: "name", Type: field.TypeString},
-		{Name: "username", Type: field.TypeString, Default: "clvsxz7rl0000s87c8aa8rbfv"},
+		{Name: "username", Type: field.TypeString, Default: "clw1l1uu50000vx7cxln34zsj"},
+		{Name: "profile_image_url", Type: field.TypeString, Nullable: true},
 		{Name: "stripe_customer_id", Type: field.TypeString, Nullable: true},
 		{Name: "password", Type: field.TypeString},
 		{Name: "url", Type: field.TypeString, Nullable: true},
 		{Name: "email", Type: field.TypeString, Unique: true},
 		{Name: "email_verified", Type: field.TypeBool, Default: false},
 		{Name: "bio", Type: field.TypeString, Nullable: true, Size: 2147483647},
-		{Name: "profile_image_url", Type: field.TypeString, Nullable: true},
+		{Name: "dob", Type: field.TypeString, Nullable: true},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 	}

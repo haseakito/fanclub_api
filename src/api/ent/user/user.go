@@ -18,6 +18,8 @@ const (
 	FieldName = "name"
 	// FieldUsername holds the string denoting the username field in the database.
 	FieldUsername = "username"
+	// FieldProfileImageURL holds the string denoting the profile_image_url field in the database.
+	FieldProfileImageURL = "profile_image_url"
 	// FieldStripeCustomerID holds the string denoting the stripe_customer_id field in the database.
 	FieldStripeCustomerID = "stripe_customer_id"
 	// FieldPassword holds the string denoting the password field in the database.
@@ -30,8 +32,8 @@ const (
 	FieldEmailVerified = "email_verified"
 	// FieldBio holds the string denoting the bio field in the database.
 	FieldBio = "bio"
-	// FieldProfileImageURL holds the string denoting the profile_image_url field in the database.
-	FieldProfileImageURL = "profile_image_url"
+	// FieldDob holds the string denoting the dob field in the database.
+	FieldDob = "dob"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -89,13 +91,14 @@ var Columns = []string{
 	FieldID,
 	FieldName,
 	FieldUsername,
+	FieldProfileImageURL,
 	FieldStripeCustomerID,
 	FieldPassword,
 	FieldURL,
 	FieldEmail,
 	FieldEmailVerified,
 	FieldBio,
-	FieldProfileImageURL,
+	FieldDob,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }
@@ -154,6 +157,11 @@ func ByUsername(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUsername, opts...).ToFunc()
 }
 
+// ByProfileImageURL orders the results by the profile_image_url field.
+func ByProfileImageURL(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldProfileImageURL, opts...).ToFunc()
+}
+
 // ByStripeCustomerID orders the results by the stripe_customer_id field.
 func ByStripeCustomerID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStripeCustomerID, opts...).ToFunc()
@@ -184,9 +192,9 @@ func ByBio(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldBio, opts...).ToFunc()
 }
 
-// ByProfileImageURL orders the results by the profile_image_url field.
-func ByProfileImageURL(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldProfileImageURL, opts...).ToFunc()
+// ByDob orders the results by the dob field.
+func ByDob(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDob, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

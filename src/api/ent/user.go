@@ -22,6 +22,8 @@ type User struct {
 	Name string `json:"name,omitempty"`
 	// Username holds the value of the "username" field.
 	Username string `json:"username,omitempty"`
+	// ProfileImageURL holds the value of the "profile_image_url" field.
+	ProfileImageURL string `json:"profile_image_url,omitempty"`
 	// StripeCustomerID holds the value of the "stripe_customer_id" field.
 	StripeCustomerID string `json:"stripe_customer_id,omitempty"`
 	// Password holds the value of the "password" field.
@@ -34,8 +36,8 @@ type User struct {
 	EmailVerified *bool `json:"email_verified,omitempty"`
 	// Bio holds the value of the "bio" field.
 	Bio string `json:"bio,omitempty"`
-	// ProfileImageURL holds the value of the "profile_image_url" field.
-	ProfileImageURL string `json:"profile_image_url,omitempty"`
+	// Dob holds the value of the "dob" field.
+	Dob *string `json:"dob,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -128,7 +130,7 @@ func (*User) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case user.FieldEmailVerified:
 			values[i] = new(sql.NullBool)
-		case user.FieldID, user.FieldName, user.FieldUsername, user.FieldStripeCustomerID, user.FieldPassword, user.FieldURL, user.FieldEmail, user.FieldBio, user.FieldProfileImageURL:
+		case user.FieldID, user.FieldName, user.FieldUsername, user.FieldProfileImageURL, user.FieldStripeCustomerID, user.FieldPassword, user.FieldURL, user.FieldEmail, user.FieldBio, user.FieldDob:
 			values[i] = new(sql.NullString)
 		case user.FieldCreatedAt, user.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -164,6 +166,12 @@ func (u *User) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field username", values[i])
 			} else if value.Valid {
 				u.Username = value.String
+			}
+		case user.FieldProfileImageURL:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field profile_image_url", values[i])
+			} else if value.Valid {
+				u.ProfileImageURL = value.String
 			}
 		case user.FieldStripeCustomerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -202,11 +210,12 @@ func (u *User) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				u.Bio = value.String
 			}
-		case user.FieldProfileImageURL:
+		case user.FieldDob:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field profile_image_url", values[i])
+				return fmt.Errorf("unexpected type %T for field dob", values[i])
 			} else if value.Valid {
-				u.ProfileImageURL = value.String
+				u.Dob = new(string)
+				*u.Dob = value.String
 			}
 		case user.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -292,6 +301,9 @@ func (u *User) String() string {
 	builder.WriteString("username=")
 	builder.WriteString(u.Username)
 	builder.WriteString(", ")
+	builder.WriteString("profile_image_url=")
+	builder.WriteString(u.ProfileImageURL)
+	builder.WriteString(", ")
 	builder.WriteString("stripe_customer_id=")
 	builder.WriteString(u.StripeCustomerID)
 	builder.WriteString(", ")
@@ -311,8 +323,10 @@ func (u *User) String() string {
 	builder.WriteString("bio=")
 	builder.WriteString(u.Bio)
 	builder.WriteString(", ")
-	builder.WriteString("profile_image_url=")
-	builder.WriteString(u.ProfileImageURL)
+	if v := u.Dob; v != nil {
+		builder.WriteString("dob=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(u.CreatedAt.Format(time.ANSIC))

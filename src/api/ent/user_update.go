@@ -60,6 +60,26 @@ func (uu *UserUpdate) SetNillableUsername(s *string) *UserUpdate {
 	return uu
 }
 
+// SetProfileImageURL sets the "profile_image_url" field.
+func (uu *UserUpdate) SetProfileImageURL(s string) *UserUpdate {
+	uu.mutation.SetProfileImageURL(s)
+	return uu
+}
+
+// SetNillableProfileImageURL sets the "profile_image_url" field if the given value is not nil.
+func (uu *UserUpdate) SetNillableProfileImageURL(s *string) *UserUpdate {
+	if s != nil {
+		uu.SetProfileImageURL(*s)
+	}
+	return uu
+}
+
+// ClearProfileImageURL clears the value of the "profile_image_url" field.
+func (uu *UserUpdate) ClearProfileImageURL() *UserUpdate {
+	uu.mutation.ClearProfileImageURL()
+	return uu
+}
+
 // SetStripeCustomerID sets the "stripe_customer_id" field.
 func (uu *UserUpdate) SetStripeCustomerID(s string) *UserUpdate {
 	uu.mutation.SetStripeCustomerID(s)
@@ -162,23 +182,23 @@ func (uu *UserUpdate) ClearBio() *UserUpdate {
 	return uu
 }
 
-// SetProfileImageURL sets the "profile_image_url" field.
-func (uu *UserUpdate) SetProfileImageURL(s string) *UserUpdate {
-	uu.mutation.SetProfileImageURL(s)
+// SetDob sets the "dob" field.
+func (uu *UserUpdate) SetDob(s string) *UserUpdate {
+	uu.mutation.SetDob(s)
 	return uu
 }
 
-// SetNillableProfileImageURL sets the "profile_image_url" field if the given value is not nil.
-func (uu *UserUpdate) SetNillableProfileImageURL(s *string) *UserUpdate {
+// SetNillableDob sets the "dob" field if the given value is not nil.
+func (uu *UserUpdate) SetNillableDob(s *string) *UserUpdate {
 	if s != nil {
-		uu.SetProfileImageURL(*s)
+		uu.SetDob(*s)
 	}
 	return uu
 }
 
-// ClearProfileImageURL clears the value of the "profile_image_url" field.
-func (uu *UserUpdate) ClearProfileImageURL() *UserUpdate {
-	uu.mutation.ClearProfileImageURL()
+// ClearDob clears the value of the "dob" field.
+func (uu *UserUpdate) ClearDob() *UserUpdate {
+	uu.mutation.ClearDob()
 	return uu
 }
 
@@ -463,6 +483,12 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := uu.mutation.Username(); ok {
 		_spec.SetField(user.FieldUsername, field.TypeString, value)
 	}
+	if value, ok := uu.mutation.ProfileImageURL(); ok {
+		_spec.SetField(user.FieldProfileImageURL, field.TypeString, value)
+	}
+	if uu.mutation.ProfileImageURLCleared() {
+		_spec.ClearField(user.FieldProfileImageURL, field.TypeString)
+	}
 	if value, ok := uu.mutation.StripeCustomerID(); ok {
 		_spec.SetField(user.FieldStripeCustomerID, field.TypeString, value)
 	}
@@ -490,11 +516,11 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if uu.mutation.BioCleared() {
 		_spec.ClearField(user.FieldBio, field.TypeString)
 	}
-	if value, ok := uu.mutation.ProfileImageURL(); ok {
-		_spec.SetField(user.FieldProfileImageURL, field.TypeString, value)
+	if value, ok := uu.mutation.Dob(); ok {
+		_spec.SetField(user.FieldDob, field.TypeString, value)
 	}
-	if uu.mutation.ProfileImageURLCleared() {
-		_spec.ClearField(user.FieldProfileImageURL, field.TypeString)
+	if uu.mutation.DobCleared() {
+		_spec.ClearField(user.FieldDob, field.TypeString)
 	}
 	if value, ok := uu.mutation.CreatedAt(); ok {
 		_spec.SetField(user.FieldCreatedAt, field.TypeTime, value)
@@ -804,6 +830,26 @@ func (uuo *UserUpdateOne) SetNillableUsername(s *string) *UserUpdateOne {
 	return uuo
 }
 
+// SetProfileImageURL sets the "profile_image_url" field.
+func (uuo *UserUpdateOne) SetProfileImageURL(s string) *UserUpdateOne {
+	uuo.mutation.SetProfileImageURL(s)
+	return uuo
+}
+
+// SetNillableProfileImageURL sets the "profile_image_url" field if the given value is not nil.
+func (uuo *UserUpdateOne) SetNillableProfileImageURL(s *string) *UserUpdateOne {
+	if s != nil {
+		uuo.SetProfileImageURL(*s)
+	}
+	return uuo
+}
+
+// ClearProfileImageURL clears the value of the "profile_image_url" field.
+func (uuo *UserUpdateOne) ClearProfileImageURL() *UserUpdateOne {
+	uuo.mutation.ClearProfileImageURL()
+	return uuo
+}
+
 // SetStripeCustomerID sets the "stripe_customer_id" field.
 func (uuo *UserUpdateOne) SetStripeCustomerID(s string) *UserUpdateOne {
 	uuo.mutation.SetStripeCustomerID(s)
@@ -906,23 +952,23 @@ func (uuo *UserUpdateOne) ClearBio() *UserUpdateOne {
 	return uuo
 }
 
-// SetProfileImageURL sets the "profile_image_url" field.
-func (uuo *UserUpdateOne) SetProfileImageURL(s string) *UserUpdateOne {
-	uuo.mutation.SetProfileImageURL(s)
+// SetDob sets the "dob" field.
+func (uuo *UserUpdateOne) SetDob(s string) *UserUpdateOne {
+	uuo.mutation.SetDob(s)
 	return uuo
 }
 
-// SetNillableProfileImageURL sets the "profile_image_url" field if the given value is not nil.
-func (uuo *UserUpdateOne) SetNillableProfileImageURL(s *string) *UserUpdateOne {
+// SetNillableDob sets the "dob" field if the given value is not nil.
+func (uuo *UserUpdateOne) SetNillableDob(s *string) *UserUpdateOne {
 	if s != nil {
-		uuo.SetProfileImageURL(*s)
+		uuo.SetDob(*s)
 	}
 	return uuo
 }
 
-// ClearProfileImageURL clears the value of the "profile_image_url" field.
-func (uuo *UserUpdateOne) ClearProfileImageURL() *UserUpdateOne {
-	uuo.mutation.ClearProfileImageURL()
+// ClearDob clears the value of the "dob" field.
+func (uuo *UserUpdateOne) ClearDob() *UserUpdateOne {
+	uuo.mutation.ClearDob()
 	return uuo
 }
 
@@ -1237,6 +1283,12 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 	if value, ok := uuo.mutation.Username(); ok {
 		_spec.SetField(user.FieldUsername, field.TypeString, value)
 	}
+	if value, ok := uuo.mutation.ProfileImageURL(); ok {
+		_spec.SetField(user.FieldProfileImageURL, field.TypeString, value)
+	}
+	if uuo.mutation.ProfileImageURLCleared() {
+		_spec.ClearField(user.FieldProfileImageURL, field.TypeString)
+	}
 	if value, ok := uuo.mutation.StripeCustomerID(); ok {
 		_spec.SetField(user.FieldStripeCustomerID, field.TypeString, value)
 	}
@@ -1264,11 +1316,11 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 	if uuo.mutation.BioCleared() {
 		_spec.ClearField(user.FieldBio, field.TypeString)
 	}
-	if value, ok := uuo.mutation.ProfileImageURL(); ok {
-		_spec.SetField(user.FieldProfileImageURL, field.TypeString, value)
+	if value, ok := uuo.mutation.Dob(); ok {
+		_spec.SetField(user.FieldDob, field.TypeString, value)
 	}
-	if uuo.mutation.ProfileImageURLCleared() {
-		_spec.ClearField(user.FieldProfileImageURL, field.TypeString)
+	if uuo.mutation.DobCleared() {
+		_spec.ClearField(user.FieldDob, field.TypeString)
 	}
 	if value, ok := uuo.mutation.CreatedAt(); ok {
 		_spec.SetField(user.FieldCreatedAt, field.TypeTime, value)
