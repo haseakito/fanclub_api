@@ -34,7 +34,7 @@ func (h AuthHandler) Signup(c echo.Context) error {
 
 	// Validate the signup request data
 	if err := req.Validate(); err != nil {
-		return c.String(http.StatusBadRequest, err.Error())
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": err.Error()})
 	}
 
 	// Hash password
@@ -62,6 +62,7 @@ func (h AuthHandler) Signup(c echo.Context) error {
 		SetName(req.Name).
 		SetEmail(req.Email).
 		SetPassword(hashedPassword).
+		SetProfileImageURL("https://dbdehqz6rw0l.cloudfront.net/profile/default-profile.jpeg").
 		Save(c.Request().Context())
 	if err != nil {
 		tx.Rollback()
@@ -120,15 +121,14 @@ func (h AuthHandler) Signin(c echo.Context) error {
 	}
 
 	// Generate JWT token
-	token, err := auth.GenerateToken(user.ID)
+	token, err := auth.GenerateToken(user)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to generate token"})
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{
-		"message":      "Successfully signed in",
+		"message":      "Successfully signed in.",
 		"access_token": token,
-		"user_id":      user.ID,
 	})
 }
 
