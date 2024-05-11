@@ -8,6 +8,7 @@ import (
 	middlewares "github.com/hackgame-org/fanclub_api/api/middleware"
 	"github.com/hackgame-org/fanclub_api/internal/database"
 	"github.com/hackgame-org/fanclub_api/internal/redis"
+	"github.com/stripe/stripe-go/v78"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
@@ -34,7 +35,11 @@ func main() {
 	mux := muxgo.NewAPIClient(
 		muxgo.NewConfiguration(
 			muxgo.WithBasicAuth(os.Getenv("MUX_TOKEN_ID"), os.Getenv("MUX_TOKEN_SECRET")),
-		))
+		),
+	)
+
+	// Initialize Stripe client
+	stripe.Key = os.Getenv("STRIPE_SECRET_KEY")
 
 	// Initialize echo application
 	e := echo.New()
@@ -74,6 +79,7 @@ func main() {
 		// Initialize handler for users
 		uh := handlers.NewUserHandler(db, rdb)
 
+		u.POST("/upgrade", uh.UpgradeUser, middlewares.AuthMiddleware)
 		u.POST("/upload/profile_picture", uh.UploadProfilePicture, middlewares.AuthMiddleware)
 		u.POST("/:id/follow", uh.FollowUser, middlewares.AuthMiddleware)
 		u.POST("/:id/unfollow", uh.UnfollowUser, middlewares.AuthMiddleware)
@@ -124,6 +130,17 @@ func main() {
 		c.DELETE("/:id", ch.DeleteCategory)
 	}
 
+	// Order group APIs
+	o := r.Group("/orders")
+	{
+		// Initialize handler for categories
+		oh := handlers.NewOrderHandler(db, rdb)
+
+		o.POST("", oh.CreateOrder, middlewares.AuthMiddleware)
+		o.GET("", oh.GetOrders, middlewares.AuthMiddleware)
+		o.GET("/:id", oh.GetOrder, middlewares.AuthMiddleware)
+	}
+
 	// Subscriptions group APIs
 	s := r.Group("/subscriptions")
 	{
@@ -135,6 +152,15 @@ func main() {
 		s.POST("", sh.CreateSubscription)
 		s.PATCH("/:id", sh.UpdateSubscription)
 		s.DELETE("/:id", sh.DeleteSubscription)
+	}
+
+	// Webhooks group APIs
+	w := r.Group("/webhooks")
+	{
+		// Initialize handler for webhooks
+		wh := handlers.NewWebhookHandler(db)
+
+		w.GET("", wh.StripeWebhook)
 	}
 
 	// Start the server
