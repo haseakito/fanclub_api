@@ -41,9 +41,10 @@ func main() {
 
 	// Set up CORS config
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"http://localhost:3000", os.Getenv("FRONTEND_URL")},
-		AllowMethods: []string{echo.GET, echo.PUT, echo.POST, echo.DELETE, echo.OPTIONS},
-		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
+		AllowOrigins:     []string{"http://localhost:3000", os.Getenv("FRONTEND_URL")},
+		AllowMethods:     []string{echo.GET, echo.PUT, echo.PATCH, echo.POST, echo.DELETE},
+		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
+		AllowCredentials: true,
 	}))
 
 	// Logging middleware
@@ -56,6 +57,7 @@ func main() {
 	// Auth group APIs
 	a := r.Group("/auth")
 	{
+		// Initialize handler for authentication
 		ah := handlers.NewAuthHandler(db)
 
 		a.POST("/sign-up", ah.Signup)
@@ -69,16 +71,18 @@ func main() {
 	// Users group APIs
 	u := r.Group("/users")
 	{
+		// Initialize handler for users
 		uh := handlers.NewUserHandler(db, rdb)
 
 		u.POST("/upload/profile_picture", uh.UploadProfilePicture, middlewares.AuthMiddleware)
-		u.POST("/:id/follow", uh.FollowUser)
-		u.POST("/:id/unfollow", uh.UnfollowUser)
-		u.GET("", uh.GetUsers, middlewares.AuthMiddleware)
+		u.POST("/:id/follow", uh.FollowUser, middlewares.AuthMiddleware)
+		u.POST("/:id/unfollow", uh.UnfollowUser, middlewares.AuthMiddleware)
+		u.GET("", uh.GetUsers)
 		u.GET("/:id", uh.GetUser)
 		u.GET("/:id/followers", uh.GetFollowers)
 		u.GET("/:id/following", uh.GetFollowing)
-		u.PATCH("/:id", uh.UpdateUserProfile)
+		u.PATCH("/update/profile", uh.UpdateUserProfile, middlewares.AuthMiddleware)
+		u.PATCH("/update/account", uh.UpdateUserAccount, middlewares.AuthMiddleware)
 		u.DELETE("", uh.DeleteUser, middlewares.AuthMiddleware)
 	}
 
@@ -88,27 +92,30 @@ func main() {
 		// Initialize handler for posts
 		ph := handlers.NewPostHandler(db, mux, rdb)
 
-		p.POST("", ph.CreatePost)
-		p.POST("/:id/upload/video", ph.UploadVideo)
-		p.POST("/:id/upload/thumnail", ph.UploadThumnail)
+		p.POST("", ph.CreatePost, middlewares.AuthMiddleware)
+		p.POST("/:id/upload/video", ph.UploadVideo, middlewares.AuthMiddleware)
+		p.POST("/:id/upload/thumbnail", ph.UploadThumbnail, middlewares.AuthMiddleware)
 		p.GET("", ph.GetPosts)
-		p.GET("/:id", ph.GetPostByID)		
-		p.PATCH("/:id", ph.UpdatePost)
-		p.DELETE("/:id", ph.DeletePost)
+		p.GET("/:id", ph.GetPostByID, middlewares.AuthMiddleware)
+		p.PATCH("/:id", ph.UpdatePost, middlewares.AuthMiddleware)
+		p.DELETE("/:id", ph.DeletePost, middlewares.AuthMiddleware)
 	}
 
 	// Likes group APIs
 	l := r.Group("/likes")
 	{
-		lh := handlers.NewLikeHandler(db)
+		// Initialize handler for likes
+		lh := handlers.NewLikeHandler(db, rdb)
 
-		l.POST("/create", lh.CreateLike)
-		l.POST("/delete", lh.DeleteLike)
+		l.POST("/create", lh.CreateLike, middlewares.AuthMiddleware)
+		l.POST("/destroy", lh.DeleteLike, middlewares.AuthMiddleware)
+		l.GET("/posts", lh.GetPostsByLike, middlewares.AuthMiddleware)
 	}
 
 	// Categories group APIs
 	c := r.Group("/categories")
 	{
+		// Initialize handler for categories
 		ch := handlers.NewCategoryHandler(db)
 
 		c.POST("", ch.CreateCategories)
@@ -120,6 +127,7 @@ func main() {
 	// Subscriptions group APIs
 	s := r.Group("/subscriptions")
 	{
+		// Initialize handler for subscriptions
 		sh := handlers.NewSubscriptionHandler(db)
 
 		s.GET("", sh.GetSubscriptions)
