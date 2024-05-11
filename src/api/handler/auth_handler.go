@@ -13,6 +13,8 @@ import (
 	"github.com/hackgame-org/fanclub_api/pkg/auth"
 	"github.com/hackgame-org/fanclub_api/pkg/email"
 	"github.com/labstack/echo/v4"
+	"github.com/stripe/stripe-go/v78"
+	"github.com/stripe/stripe-go/v78/account"
 )
 
 type AuthHandler struct {
@@ -58,11 +60,12 @@ func (h AuthHandler) Signup(c echo.Context) error {
 	}
 
 	// Create a new user
-	user, err := tx.User.Create().
+	user, err := tx.User.
+		Create().
 		SetName(req.Name).
 		SetEmail(req.Email).
 		SetPassword(hashedPassword).
-		SetProfileImageURL("https://dbdehqz6rw0l.cloudfront.net/profile/default-profile.jpeg").
+		SetProfileImageURL("https://dbdehqz6rw0l.cloudfront.net/profiles/default-profile.jpeg").
 		Save(c.Request().Context())
 	if err != nil {
 		tx.Rollback()
@@ -166,6 +169,23 @@ func (h AuthHandler) VerifyEmail(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Incorrect verification code"})
 	}
 
+	// Instantiate a Stripe account parameters
+	params := &stripe.AccountParams{
+		Type:         stripe.String("custom"),
+		Email:        stripe.String(req.Email),
+		BusinessType: stripe.String("individual"),
+		Capabilities: &stripe.AccountCapabilitiesParams{
+			CardPayments: &stripe.AccountCapabilitiesCardPaymentsParams{Requested: stripe.Bool(true)},
+			Transfers:    &stripe.AccountCapabilitiesTransfersParams{Requested: stripe.Bool(true)},
+		},
+	}
+
+	// Create a new Stripe account
+	res, err := account.New(params)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to create a new Stripe account: " + err.Error()})
+	}
+
 	// Start transaction
 	tx, err := h.db.Tx(c.Request().Context())
 	if err != nil {
@@ -177,6 +197,7 @@ func (h AuthHandler) VerifyEmail(c echo.Context) error {
 		Update().
 		Where(user.Email(req.Email)).
 		SetEmailVerified(true).
+		SetStripeAccountID(res.ID).
 		Save(c.Request().Context())
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err)
