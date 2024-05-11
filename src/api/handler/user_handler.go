@@ -244,25 +244,54 @@ func (h UserHandler) UpdateUserProfile(c echo.Context) error {
 	userID := c.Get("userID").(string)
 
 	// Bind the request data to UserRequest
-	var req requests.UserRequest
+	var req requests.ProfileUpdateRequest
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, err)
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid request: " + err.Error()})
 	}
 
 	// Validate request data
 	if err := req.Validate(); err != nil {
-		return c.JSON(http.StatusBadRequest, err)
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": err.Error()})
+	}
+
+	// Update fields
+	user, err := h.db.User.
+		UpdateOneID(userID).
+		SetName(req.Name).
+		SetBio(req.Bio).
+		SetURL(req.Url).
+		Save(c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to update user profile: " + err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, user)
+}
+
+func (h UserHandler) UpdateUserAccount(c echo.Context) error {
+	// Get the user id from context
+	userID := c.Get("userID").(string)
+
+	// Bind the request data to UserRequest
+	var req requests.AcountUpdateRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid request: " + err.Error()})
+	}
+
+	// Validate request data
+	if err := req.Validate(); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": err.Error()})
 	}
 
 	// Update fields
 	user, err := h.db.User.
 		UpdateOneID(userID).
 		SetUsername(req.Username).
-		SetBio(req.Bio).
-		SetURL(req.Url).
+		SetEmail(req.Email).
+		SetDob(req.DOB).
 		Save(c.Request().Context())
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to update user account: " + err.Error()})
 	}
 
 	return c.JSON(http.StatusOK, user)
