@@ -21,7 +21,7 @@ func (req PostCreateRequest) Validate() error {
 type PostRequest struct {
 	Title           string   `json:"title"`
 	Description     *string  `json:"description"`
-	Price           *int     `json:"price"`
+	Price           *int64   `json:"price"`
 	CategoryIDs     []string `json:"categories"`
 	SubscriptionIDs []string `json:"subscriptions"`
 	IsFeatured      bool     `json:"is_featured"`
