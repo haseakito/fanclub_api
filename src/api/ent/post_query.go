@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/hackgame-org/fanclub_api/api/ent/category"
 	"github.com/hackgame-org/fanclub_api/api/ent/like"
+	"github.com/hackgame-org/fanclub_api/api/ent/order"
 	"github.com/hackgame-org/fanclub_api/api/ent/post"
 	"github.com/hackgame-org/fanclub_api/api/ent/predicate"
 	"github.com/hackgame-org/fanclub_api/api/ent/subscription"
@@ -30,6 +31,7 @@ type PostQuery struct {
 	withSubscriptions *SubscriptionQuery
 	withLikes         *LikeQuery
 	withCategories    *CategoryQuery
+	withOrders        *OrderQuery
 	withFKs           bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -148,6 +150,28 @@ func (pq *PostQuery) QueryCategories() *CategoryQuery {
 			sqlgraph.From(post.Table, post.FieldID, selector),
 			sqlgraph.To(category.Table, category.FieldID),
 			sqlgraph.Edge(sqlgraph.M2M, false, post.CategoriesTable, post.CategoriesPrimaryKey...),
+		)
+		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryOrders chains the current query on the "orders" edge.
+func (pq *PostQuery) QueryOrders() *OrderQuery {
+	query := (&OrderClient{config: pq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := pq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := pq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(post.Table, post.FieldID, selector),
+			sqlgraph.To(order.Table, order.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, post.OrdersTable, post.OrdersColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
 		return fromU, nil
@@ -351,6 +375,7 @@ func (pq *PostQuery) Clone() *PostQuery {
 		withSubscriptions: pq.withSubscriptions.Clone(),
 		withLikes:         pq.withLikes.Clone(),
 		withCategories:    pq.withCategories.Clone(),
+		withOrders:        pq.withOrders.Clone(),
 		// clone intermediate query.
 		sql:  pq.sql.Clone(),
 		path: pq.path,
@@ -398,6 +423,17 @@ func (pq *PostQuery) WithCategories(opts ...func(*CategoryQuery)) *PostQuery {
 		opt(query)
 	}
 	pq.withCategories = query
+	return pq
+}
+
+// WithOrders tells the query-builder to eager-load the nodes that are connected to
+// the "orders" edge. The optional arguments are used to configure the query builder of the edge.
+func (pq *PostQuery) WithOrders(opts ...func(*OrderQuery)) *PostQuery {
+	query := (&OrderClient{config: pq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	pq.withOrders = query
 	return pq
 }
 
@@ -480,11 +516,12 @@ func (pq *PostQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Post, e
 		nodes       = []*Post{}
 		withFKs     = pq.withFKs
 		_spec       = pq.querySpec()
-		loadedTypes = [4]bool{
+		loadedTypes = [5]bool{
 			pq.withUser != nil,
 			pq.withSubscriptions != nil,
 			pq.withLikes != nil,
 			pq.withCategories != nil,
+			pq.withOrders != nil,
 		}
 	)
 	if pq.withUser != nil {
@@ -535,6 +572,13 @@ func (pq *PostQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Post, e
 		if err := pq.loadCategories(ctx, query, nodes,
 			func(n *Post) { n.Edges.Categories = []*Category{} },
 			func(n *Post, e *Category) { n.Edges.Categories = append(n.Edges.Categories, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := pq.withOrders; query != nil {
+		if err := pq.loadOrders(ctx, query, nodes,
+			func(n *Post) { n.Edges.Orders = []*Order{} },
+			func(n *Post, e *Order) { n.Edges.Orders = append(n.Edges.Orders, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -723,6 +767,37 @@ func (pq *PostQuery) loadCategories(ctx context.Context, query *CategoryQuery, n
 		for kn := range nodes {
 			assign(kn, n)
 		}
+	}
+	return nil
+}
+func (pq *PostQuery) loadOrders(ctx context.Context, query *OrderQuery, nodes []*Post, init func(*Post), assign func(*Post, *Order)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Post)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.Order(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(post.OrdersColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.post_orders
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "post_orders" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "post_orders" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
 	}
 	return nil
 }

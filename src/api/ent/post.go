@@ -31,7 +31,7 @@ type Post struct {
 	// MuxPlaybackID holds the value of the "mux_playback_id" field.
 	MuxPlaybackID string `json:"mux_playback_id,omitempty"`
 	// Price holds the value of the "price" field.
-	Price int `json:"price,omitempty"`
+	Price int64 `json:"price,omitempty"`
 	// IsFeatured holds the value of the "is_featured" field.
 	IsFeatured *bool `json:"is_featured,omitempty"`
 	// Status holds the value of the "status" field.
@@ -57,9 +57,11 @@ type PostEdges struct {
 	Likes []*Like `json:"likes,omitempty"`
 	// Categories holds the value of the categories edge.
 	Categories []*Category `json:"categories,omitempty"`
+	// Orders holds the value of the orders edge.
+	Orders []*Order `json:"orders,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [5]bool
 }
 
 // UserOrErr returns the User value or an error if the edge
@@ -98,6 +100,15 @@ func (e PostEdges) CategoriesOrErr() ([]*Category, error) {
 		return e.Categories, nil
 	}
 	return nil, &NotLoadedError{edge: "categories"}
+}
+
+// OrdersOrErr returns the Orders value or an error if the edge
+// was not loaded in eager-loading.
+func (e PostEdges) OrdersOrErr() ([]*Order, error) {
+	if e.loadedTypes[4] {
+		return e.Orders, nil
+	}
+	return nil, &NotLoadedError{edge: "orders"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -176,7 +187,7 @@ func (po *Post) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field price", values[i])
 			} else if value.Valid {
-				po.Price = int(value.Int64)
+				po.Price = value.Int64
 			}
 		case post.FieldIsFeatured:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -242,6 +253,11 @@ func (po *Post) QueryLikes() *LikeQuery {
 // QueryCategories queries the "categories" edge of the Post entity.
 func (po *Post) QueryCategories() *CategoryQuery {
 	return NewPostClient(po.config).QueryCategories(po)
+}
+
+// QueryOrders queries the "orders" edge of the Post entity.
+func (po *Post) QueryOrders() *OrderQuery {
+	return NewPostClient(po.config).QueryOrders(po)
 }
 
 // Update returns a builder for updating this Post.

@@ -16,6 +16,8 @@ type Tx struct {
 	Category *CategoryClient
 	// Like is the client for interacting with the Like builders.
 	Like *LikeClient
+	// Order is the client for interacting with the Order builders.
+	Order *OrderClient
 	// Post is the client for interacting with the Post builders.
 	Post *PostClient
 	// Subscription is the client for interacting with the Subscription builders.
@@ -157,6 +159,7 @@ func (tx *Tx) Client() *Client {
 func (tx *Tx) init() {
 	tx.Category = NewCategoryClient(tx.config)
 	tx.Like = NewLikeClient(tx.config)
+	tx.Order = NewOrderClient(tx.config)
 	tx.Post = NewPostClient(tx.config)
 	tx.Subscription = NewSubscriptionClient(tx.config)
 	tx.User = NewUserClient(tx.config)

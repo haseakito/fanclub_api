@@ -35,6 +35,7 @@ func (Category) Fields() []ent.Field {
 // Edges of the Category.
 func (Category) Edges() []ent.Edge {
 	return []ent.Edge{
+		// Belongs-to relationship to a post
 		edge.From("posts", Post.Type).Ref("categories"),
 	}
 }

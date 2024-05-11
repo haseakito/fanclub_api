@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/hackgame-org/fanclub_api/api/ent/category"
 	"github.com/hackgame-org/fanclub_api/api/ent/like"
+	"github.com/hackgame-org/fanclub_api/api/ent/order"
 	"github.com/hackgame-org/fanclub_api/api/ent/post"
 	"github.com/hackgame-org/fanclub_api/api/ent/subscription"
 	"github.com/hackgame-org/fanclub_api/api/ent/user"
@@ -101,13 +102,13 @@ func (pc *PostCreate) SetNillableMuxPlaybackID(s *string) *PostCreate {
 }
 
 // SetPrice sets the "price" field.
-func (pc *PostCreate) SetPrice(i int) *PostCreate {
+func (pc *PostCreate) SetPrice(i int64) *PostCreate {
 	pc.mutation.SetPrice(i)
 	return pc
 }
 
 // SetNillablePrice sets the "price" field if the given value is not nil.
-func (pc *PostCreate) SetNillablePrice(i *int) *PostCreate {
+func (pc *PostCreate) SetNillablePrice(i *int64) *PostCreate {
 	if i != nil {
 		pc.SetPrice(*i)
 	}
@@ -246,6 +247,21 @@ func (pc *PostCreate) AddCategories(c ...*Category) *PostCreate {
 		ids[i] = c[i].ID
 	}
 	return pc.AddCategoryIDs(ids...)
+}
+
+// AddOrderIDs adds the "orders" edge to the Order entity by IDs.
+func (pc *PostCreate) AddOrderIDs(ids ...string) *PostCreate {
+	pc.mutation.AddOrderIDs(ids...)
+	return pc
+}
+
+// AddOrders adds the "orders" edges to the Order entity.
+func (pc *PostCreate) AddOrders(o ...*Order) *PostCreate {
+	ids := make([]string, len(o))
+	for i := range o {
+		ids[i] = o[i].ID
+	}
+	return pc.AddOrderIDs(ids...)
 }
 
 // Mutation returns the PostMutation object of the builder.
@@ -387,7 +403,7 @@ func (pc *PostCreate) createSpec() (*Post, *sqlgraph.CreateSpec) {
 		_node.MuxPlaybackID = value
 	}
 	if value, ok := pc.mutation.Price(); ok {
-		_spec.SetField(post.FieldPrice, field.TypeInt, value)
+		_spec.SetField(post.FieldPrice, field.TypeInt64, value)
 		_node.Price = value
 	}
 	if value, ok := pc.mutation.IsFeatured(); ok {
@@ -464,6 +480,22 @@ func (pc *PostCreate) createSpec() (*Post, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(category.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := pc.mutation.OrdersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   post.OrdersTable,
+			Columns: []string{post.OrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

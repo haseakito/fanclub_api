@@ -3,6 +3,7 @@
 package user
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -20,8 +21,8 @@ const (
 	FieldUsername = "username"
 	// FieldProfileImageURL holds the string denoting the profile_image_url field in the database.
 	FieldProfileImageURL = "profile_image_url"
-	// FieldStripeCustomerID holds the string denoting the stripe_customer_id field in the database.
-	FieldStripeCustomerID = "stripe_customer_id"
+	// FieldStripeAccountID holds the string denoting the stripe_account_id field in the database.
+	FieldStripeAccountID = "stripe_account_id"
 	// FieldPassword holds the string denoting the password field in the database.
 	FieldPassword = "password"
 	// FieldURL holds the string denoting the url field in the database.
@@ -34,6 +35,8 @@ const (
 	FieldBio = "bio"
 	// FieldDob holds the string denoting the dob field in the database.
 	FieldDob = "dob"
+	// FieldRole holds the string denoting the role field in the database.
+	FieldRole = "role"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -50,6 +53,8 @@ const (
 	EdgeFollowers = "followers"
 	// EdgeFollowing holds the string denoting the following edge name in mutations.
 	EdgeFollowing = "following"
+	// EdgeOrders holds the string denoting the orders edge name in mutations.
+	EdgeOrders = "orders"
 	// Table holds the table name of the user in the database.
 	Table = "users"
 	// VerificationTokenTable is the table that holds the verification_token relation/edge.
@@ -84,6 +89,13 @@ const (
 	FollowersTable = "user_following"
 	// FollowingTable is the table that holds the following relation/edge. The primary key declared below.
 	FollowingTable = "user_following"
+	// OrdersTable is the table that holds the orders relation/edge.
+	OrdersTable = "orders"
+	// OrdersInverseTable is the table name for the Order entity.
+	// It exists in this package in order to avoid circular dependency with the "order" package.
+	OrdersInverseTable = "orders"
+	// OrdersColumn is the table column denoting the orders relation/edge.
+	OrdersColumn = "user_orders"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -92,13 +104,14 @@ var Columns = []string{
 	FieldName,
 	FieldUsername,
 	FieldProfileImageURL,
-	FieldStripeCustomerID,
+	FieldStripeAccountID,
 	FieldPassword,
 	FieldURL,
 	FieldEmail,
 	FieldEmailVerified,
 	FieldBio,
 	FieldDob,
+	FieldRole,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }
@@ -139,6 +152,33 @@ var (
 	IDValidator func(string) error
 )
 
+// Role defines the type for the "role" enum field.
+type Role string
+
+// RoleFan is the default value of the Role enum.
+const DefaultRole = RoleFan
+
+// Role values.
+const (
+	RoleFan     Role = "fan"
+	RoleCreator Role = "creator"
+	RoleAdmin   Role = "admin"
+)
+
+func (r Role) String() string {
+	return string(r)
+}
+
+// RoleValidator is a validator for the "role" field enum values. It is called by the builders before save.
+func RoleValidator(r Role) error {
+	switch r {
+	case RoleFan, RoleCreator, RoleAdmin:
+		return nil
+	default:
+		return fmt.Errorf("user: invalid enum value for role field: %q", r)
+	}
+}
+
 // OrderOption defines the ordering options for the User queries.
 type OrderOption func(*sql.Selector)
 
@@ -162,9 +202,9 @@ func ByProfileImageURL(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldProfileImageURL, opts...).ToFunc()
 }
 
-// ByStripeCustomerID orders the results by the stripe_customer_id field.
-func ByStripeCustomerID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldStripeCustomerID, opts...).ToFunc()
+// ByStripeAccountID orders the results by the stripe_account_id field.
+func ByStripeAccountID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldStripeAccountID, opts...).ToFunc()
 }
 
 // ByPassword orders the results by the password field.
@@ -195,6 +235,11 @@ func ByBio(opts ...sql.OrderTermOption) OrderOption {
 // ByDob orders the results by the dob field.
 func ByDob(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDob, opts...).ToFunc()
+}
+
+// ByRole orders the results by the role field.
+func ByRole(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRole, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.
@@ -283,6 +328,20 @@ func ByFollowing(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newFollowingStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByOrdersCount orders the results by orders count.
+func ByOrdersCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newOrdersStep(), opts...)
+	}
+}
+
+// ByOrders orders the results by orders terms.
+func ByOrders(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newOrdersStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newVerificationTokenStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -323,5 +382,12 @@ func newFollowingStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(Table, FieldID),
 		sqlgraph.Edge(sqlgraph.M2M, false, FollowingTable, FollowingPrimaryKey...),
+	)
+}
+func newOrdersStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(OrdersInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, OrdersTable, OrdersColumn),
 	)
 }
