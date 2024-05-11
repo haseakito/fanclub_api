@@ -41,24 +41,24 @@ func (h PostHandler) CreatePost(c echo.Context) error {
 	userID := c.Get("userID").(string)
 
 	// Bind the request data to PostRequet
-	var req requests.PostRequest
+	var req requests.PostCreateRequest
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, err)
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid request: " + err.Error()})
 	}
 
 	// Validate request data
 	if err := req.Validate(); err != nil {
-		return c.JSON(http.StatusBadRequest, err)
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": err.Error()})
 	}
 
 	// Insert a new post data
 	res, err := h.db.Post.
 		Create().
 		SetTitle(req.Title).
-		SetUser(h.db.User.GetX(c.Request().Context(), userID)).
+		SetUserID(userID).
 		Save(c.Request().Context())
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to create a new post" + err.Error()})
 	}
 
 	return c.JSON(http.StatusCreated, res)
@@ -110,6 +110,7 @@ func (h PostHandler) UploadVideo(c echo.Context) error {
 		SetVideoURL(url).
 		SetMuxAssetID(asset.Data.Id).
 		SetMuxPlaybackID(asset.Data.PlaybackIds[0].Id).
+		SetThumbnailURL("https://image.mux.com/" + asset.Data.PlaybackIds[0].Id + "/thumbnail.webp?width=1280&height=720&time=5").
 		Save(c.Request().Context())
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to update the post: " + err.Error()})
@@ -118,7 +119,7 @@ func (h PostHandler) UploadVideo(c echo.Context) error {
 	return c.JSON(http.StatusOK, "Successfully uploaded the video")
 }
 
-func (h PostHandler) UploadThumnail(c echo.Context) error {
+func (h PostHandler) UploadThumbnail(c echo.Context) error {
 	// Get post id from request
 	postID := c.Param("id")
 
@@ -185,14 +186,18 @@ func (h PostHandler) GetPosts(c echo.Context) error {
 
 	// Query posts with limit and offset
 	res, err := h.cache.GetOrSet(c.Request().Context(), cacheKey, func(ctx context.Context) ([]*ent.Post, error) {
-		query := h.db.Post.Query().WithCategories().Limit(limit).Offset(offset)
+		query := h.db.Post.
+			Query().
+			WithCategories().
+			Limit(limit).
+			Offset(offset).
+			Order(ent.Desc(post.FieldCreatedAt))
 		// Filter by user id if provided
 		if userID != "" {
 			query = query.Where(post.HasUserWith(user.IDEQ(userID)))
 		}
 		return query.All(ctx)
 	})
-
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to fetch posts: " + err.Error()})
 	}
@@ -221,7 +226,6 @@ func (h PostHandler) GetPostByID(c echo.Context) error {
 		}
 		return echo.ErrInternalServerError
 	}
-
 	// Query total likes for the post
 	likeCount, err := h.db.Like.
 		Query().
@@ -299,6 +303,7 @@ func (h PostHandler) UpdatePost(c echo.Context) error {
 		// Query the category with category id
 		category, err := tx.Category.Get(c.Request().Context(), categoryID)
 		if err != nil {
+			tx.Rollback()
 			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to fetch category: " + err.Error()})
 		}
 
@@ -306,14 +311,13 @@ func (h PostHandler) UpdatePost(c echo.Context) error {
 		if _, err = res.Update().
 			AddCategories(category).
 			Save(c.Request().Context()); err != nil {
+
 			return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed add category to post: " + err.Error()})
 		}
 	}
 
 	// Commit the transaction
-	if err := tx.Commit(); err != nil {
-		return echo.ErrInternalServerError
-	}
+	tx.Commit()
 
 	return c.JSON(http.StatusOK, res)
 }
