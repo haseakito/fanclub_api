@@ -9,10 +9,10 @@ import (
 
 func TestUserRequest(t *testing.T) {
 	// Instantiate a valid request
-	validReq := requests.UserRequest{
-		Username: "user-123",
-		Bio:      "test user description",
-		Url:      "http://twitter.com/",
+	validReq := requests.ProfileUpdateRequest{
+		Name: "user-123",
+		Bio:  "test user description",
+		Url:  "http://twitter.com/",
 	}
 
 	// Validate valid request
@@ -20,19 +20,19 @@ func TestUserRequest(t *testing.T) {
 	assert.NoError(t, err)
 
 	// valid request: missing username
-	validReq = requests.UserRequest{
-		Bio:      "test user description",
-		Url:      "http://twitter.com/",
+	validReq = requests.ProfileUpdateRequest{
+		Bio: "test user description",
+		Url: "http://twitter.com/",
 	}
 
 	// Validate valid request
 	err = validReq.Validate()
 	assert.NoError(t, err)
-	
-	invalidReq := requests.UserRequest{
-		Username: "user-123",
-		Bio:      "test user description",
-		Url:      "not a url",
+
+	invalidReq := requests.ProfileUpdateRequest{
+		Name: "user-123",
+		Bio:  "test user description",
+		Url:  "not a url",
 	}
 
 	// Validate invalid request

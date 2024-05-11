@@ -11,7 +11,6 @@ func TestPostRequest(t *testing.T) {
 	// Instantiate a valid request: without categories and subscriptions
 	validReq := requests.PostRequest{
 		Title:       "test title",
-		UserID:      "user123",
 		Description: nil,
 		Price:       nil,
 	}
@@ -23,7 +22,6 @@ func TestPostRequest(t *testing.T) {
 	// Instantiate a valid request: with categories
 	validReq = requests.PostRequest{
 		Title:       "test title",
-		UserID:      "user123",
 		CategoryIDs: []string{"category1", "category2"},
 		Description: nil,
 		Price:       nil,
@@ -36,7 +34,6 @@ func TestPostRequest(t *testing.T) {
 	// Instantiate a valid request: with subscriptions
 	validReq = requests.PostRequest{
 		Title:           "test title",
-		UserID:          "user123",
 		SubscriptionIDs: []string{"plan1", "plan2"},
 		Description:     nil,
 		Price:           nil,
@@ -49,7 +46,6 @@ func TestPostRequest(t *testing.T) {
 	// Instantiate a valid request: with categories and subscriptions
 	validReq = requests.PostRequest{
 		Title:           "test title",
-		UserID:          "user123",
 		CategoryIDs:     []string{"category1", "category2"},
 		SubscriptionIDs: []string{"plan1", "plan2"},
 		Description:     nil,
@@ -63,7 +59,6 @@ func TestPostRequest(t *testing.T) {
 	// Invalid request: missing title
 	invalidReq := requests.PostRequest{
 		Title:       "",
-		UserID:      "user123",
 		Description: nil,
 		Price:       nil,
 	}
@@ -73,24 +68,11 @@ func TestPostRequest(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "title")
 
-	// Invalid request: missing user id
-	invalidReq = requests.PostRequest{
-		Title:       "test title",
-		UserID:      "",
-		Description: nil,
-		Price:       nil,
-	}
-
-	// Validate invalid request
-	err = invalidReq.Validate()
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "user_id")
-
 	// Invalid request: missing description
 	invalidReq = requests.PostRequest{
-		Title:  "test title",
-		UserID: "user-123",
-		Price:  nil,
+		Title: "test title",
+
+		Price: nil,
 	}
 
 	// Validate invalid request
@@ -100,7 +82,6 @@ func TestPostRequest(t *testing.T) {
 	// Invalid request: missing price
 	invalidReq = requests.PostRequest{
 		Title:       "test title",
-		UserID:      "user-123",
 		Description: nil,
 	}
 
