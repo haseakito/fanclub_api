@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
+	"github.com/hackgame-org/fanclub_api/api/ent"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -14,19 +15,32 @@ var JwtKey = []byte(os.Getenv("JWT_SECRET_KEY"))
 
 // Claims represents the JWT claims
 type Claims struct {
-	UserID string `json:"user_id"`
+	User *User `json:"user"`
 	jwt.StandardClaims
 }
 
-func GenerateToken(userID string) (string, error) {
+type User struct {
+	UserID        string `json:"userId"`
+	Email         string `json:"email"`
+	EmailVerified bool   `json:"email_verified"`
+	Admin         bool   `json:"admin"`
+}
+
+func GenerateToken(user *ent.User) (string, error) {
 	// Set token expiry date to 3 days
 	expirationTime := time.Now().Add(72 * time.Hour)
 
 	// Set custom claims
 	claims := &Claims{
-		UserID: userID,
+		User: &User{
+			UserID:        user.ID,
+			Email:         user.Email,
+			EmailVerified: *user.EmailVerified,
+			Admin:         false,
+		},
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
+			IssuedAt:  time.Now().Unix(),
 		},
 	}
 
