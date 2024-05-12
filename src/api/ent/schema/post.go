@@ -30,7 +30,7 @@ func (Post) Fields() []ent.Field {
 		field.String("video_url").Optional(),
 		field.String("mux_asset_id").Optional(),
 		field.String("mux_playback_id").Optional(),
-		field.Int("price").Optional(),
+		field.Int64("price").Optional(),
 		field.Bool("is_featured").Default(false).Nillable(),
 		field.Bool("status").Default(false).Nillable(),
 		field.Time("created_at").Default(time.Now),
@@ -54,5 +54,8 @@ func (Post) Edges() []ent.Edge {
 
 		// Has-many relationship to category
 		edge.To("categories", Category.Type),
+
+		// Has-many relationship to order
+		edge.To("orders", Order.Type),
 	}
 }

@@ -23,6 +23,7 @@ func (VerificationToken) Fields() []ent.Field {
 // Edges of the VerificationToken.
 func (VerificationToken) Edges() []ent.Edge {
 	return []ent.Edge{
+		// Belongs-to relationship to a user
 		edge.From("user", User.Type).
 			Ref("verification_token").
 			Unique().

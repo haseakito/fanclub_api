@@ -23,7 +23,7 @@ type User struct {
 	UserID        string `json:"userId"`
 	Email         string `json:"email"`
 	EmailVerified bool   `json:"email_verified"`
-	Admin         bool   `json:"admin"`
+	Role          string `json:"role"`
 }
 
 func GenerateToken(user *ent.User) (string, error) {
@@ -36,7 +36,7 @@ func GenerateToken(user *ent.User) (string, error) {
 			UserID:        user.ID,
 			Email:         user.Email,
 			EmailVerified: *user.EmailVerified,
-			Admin:         false,
+			Role:          string(user.Role),
 		},
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),

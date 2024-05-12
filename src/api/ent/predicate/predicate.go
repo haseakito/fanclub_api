@@ -12,6 +12,9 @@ type Category func(*sql.Selector)
 // Like is the predicate function for like builders.
 type Like func(*sql.Selector)
 
+// Order is the predicate function for order builders.
+type Order func(*sql.Selector)
+
 // Post is the predicate function for post builders.
 type Post func(*sql.Selector)
 

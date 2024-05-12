@@ -24,8 +24,8 @@ type User struct {
 	Username string `json:"username,omitempty"`
 	// ProfileImageURL holds the value of the "profile_image_url" field.
 	ProfileImageURL string `json:"profile_image_url,omitempty"`
-	// StripeCustomerID holds the value of the "stripe_customer_id" field.
-	StripeCustomerID string `json:"stripe_customer_id,omitempty"`
+	// StripeAccountID holds the value of the "stripe_account_id" field.
+	StripeAccountID string `json:"stripe_account_id,omitempty"`
 	// Password holds the value of the "password" field.
 	Password string `json:"-"`
 	// URL holds the value of the "url" field.
@@ -38,6 +38,8 @@ type User struct {
 	Bio string `json:"bio,omitempty"`
 	// Dob holds the value of the "dob" field.
 	Dob *string `json:"dob,omitempty"`
+	// Role holds the value of the "role" field.
+	Role user.Role `json:"role,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -62,9 +64,11 @@ type UserEdges struct {
 	Followers []*User `json:"followers,omitempty"`
 	// Following holds the value of the following edge.
 	Following []*User `json:"following,omitempty"`
+	// Orders holds the value of the orders edge.
+	Orders []*Order `json:"orders,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [6]bool
+	loadedTypes [7]bool
 }
 
 // VerificationTokenOrErr returns the VerificationToken value or an error if the edge
@@ -123,6 +127,15 @@ func (e UserEdges) FollowingOrErr() ([]*User, error) {
 	return nil, &NotLoadedError{edge: "following"}
 }
 
+// OrdersOrErr returns the Orders value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) OrdersOrErr() ([]*Order, error) {
+	if e.loadedTypes[6] {
+		return e.Orders, nil
+	}
+	return nil, &NotLoadedError{edge: "orders"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*User) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -130,7 +143,7 @@ func (*User) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case user.FieldEmailVerified:
 			values[i] = new(sql.NullBool)
-		case user.FieldID, user.FieldName, user.FieldUsername, user.FieldProfileImageURL, user.FieldStripeCustomerID, user.FieldPassword, user.FieldURL, user.FieldEmail, user.FieldBio, user.FieldDob:
+		case user.FieldID, user.FieldName, user.FieldUsername, user.FieldProfileImageURL, user.FieldStripeAccountID, user.FieldPassword, user.FieldURL, user.FieldEmail, user.FieldBio, user.FieldDob, user.FieldRole:
 			values[i] = new(sql.NullString)
 		case user.FieldCreatedAt, user.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -173,11 +186,11 @@ func (u *User) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				u.ProfileImageURL = value.String
 			}
-		case user.FieldStripeCustomerID:
+		case user.FieldStripeAccountID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field stripe_customer_id", values[i])
+				return fmt.Errorf("unexpected type %T for field stripe_account_id", values[i])
 			} else if value.Valid {
-				u.StripeCustomerID = value.String
+				u.StripeAccountID = value.String
 			}
 		case user.FieldPassword:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -216,6 +229,12 @@ func (u *User) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				u.Dob = new(string)
 				*u.Dob = value.String
+			}
+		case user.FieldRole:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field role", values[i])
+			} else if value.Valid {
+				u.Role = user.Role(value.String)
 			}
 		case user.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -272,6 +291,11 @@ func (u *User) QueryFollowing() *UserQuery {
 	return NewUserClient(u.config).QueryFollowing(u)
 }
 
+// QueryOrders queries the "orders" edge of the User entity.
+func (u *User) QueryOrders() *OrderQuery {
+	return NewUserClient(u.config).QueryOrders(u)
+}
+
 // Update returns a builder for updating this User.
 // Note that you need to call User.Unwrap() before calling this method if this User
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -304,8 +328,8 @@ func (u *User) String() string {
 	builder.WriteString("profile_image_url=")
 	builder.WriteString(u.ProfileImageURL)
 	builder.WriteString(", ")
-	builder.WriteString("stripe_customer_id=")
-	builder.WriteString(u.StripeCustomerID)
+	builder.WriteString("stripe_account_id=")
+	builder.WriteString(u.StripeAccountID)
 	builder.WriteString(", ")
 	builder.WriteString("password=<sensitive>")
 	builder.WriteString(", ")
@@ -327,6 +351,9 @@ func (u *User) String() string {
 		builder.WriteString("dob=")
 		builder.WriteString(*v)
 	}
+	builder.WriteString(", ")
+	builder.WriteString("role=")
+	builder.WriteString(fmt.Sprintf("%v", u.Role))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(u.CreatedAt.Format(time.ANSIC))

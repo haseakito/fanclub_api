@@ -12,6 +12,8 @@ import (
 	"github.com/hackgame-org/fanclub_api/api/ent/user"
 	"github.com/hackgame-org/fanclub_api/api/requests"
 	"github.com/hackgame-org/fanclub_api/internal/redis"
+	"github.com/stripe/stripe-go/v78"
+	"github.com/stripe/stripe-go/v78/accountlink"
 
 	"github.com/hackgame-org/fanclub_api/pkg/cache"
 	"github.com/hackgame-org/fanclub_api/pkg/storage"
@@ -31,6 +33,36 @@ func NewUserHandler(db *ent.Client, rdb redis.Client) *UserHandler {
 			time.Minute,
 		),
 	}
+}
+
+func (h UserHandler) UpgradeUser(c echo.Context) error {
+	// Get the user id from context
+	userID := c.Get("userID").(string)
+
+	// Fetch user with user id
+	user, err := h.db.User.Get(c.Request().Context(), userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to fetch user: " + err.Error()})
+	}
+
+	// Instantiate a new account link parameter
+	params := &stripe.AccountLinkParams{
+		Account:    stripe.String(user.StripeAccountID),
+		RefreshURL: stripe.String("http://localhost:3000/studio/onboarding/reauth"),
+		ReturnURL:  stripe.String("http://localhost:3000/studio/onboarding/return"),
+		Type:       stripe.String("account_onboarding"),
+		CollectionOptions: &stripe.AccountLinkCollectionOptionsParams{
+			Fields: stripe.String("currently_due"),
+		},
+	}
+
+	// Create a new account link
+	res, err := accountlink.New(params)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Failed to create a new Stripe account link: " + err.Error()})
+	}
+
+	return c.JSON(http.StatusCreated, res)
 }
 
 func (h UserHandler) UploadProfilePicture(c echo.Context) error {

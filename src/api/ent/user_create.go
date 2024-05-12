@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/hackgame-org/fanclub_api/api/ent/like"
+	"github.com/hackgame-org/fanclub_api/api/ent/order"
 	"github.com/hackgame-org/fanclub_api/api/ent/post"
 	"github.com/hackgame-org/fanclub_api/api/ent/subscription"
 	"github.com/hackgame-org/fanclub_api/api/ent/user"
@@ -58,16 +59,16 @@ func (uc *UserCreate) SetNillableProfileImageURL(s *string) *UserCreate {
 	return uc
 }
 
-// SetStripeCustomerID sets the "stripe_customer_id" field.
-func (uc *UserCreate) SetStripeCustomerID(s string) *UserCreate {
-	uc.mutation.SetStripeCustomerID(s)
+// SetStripeAccountID sets the "stripe_account_id" field.
+func (uc *UserCreate) SetStripeAccountID(s string) *UserCreate {
+	uc.mutation.SetStripeAccountID(s)
 	return uc
 }
 
-// SetNillableStripeCustomerID sets the "stripe_customer_id" field if the given value is not nil.
-func (uc *UserCreate) SetNillableStripeCustomerID(s *string) *UserCreate {
+// SetNillableStripeAccountID sets the "stripe_account_id" field if the given value is not nil.
+func (uc *UserCreate) SetNillableStripeAccountID(s *string) *UserCreate {
 	if s != nil {
-		uc.SetStripeCustomerID(*s)
+		uc.SetStripeAccountID(*s)
 	}
 	return uc
 }
@@ -136,6 +137,20 @@ func (uc *UserCreate) SetDob(s string) *UserCreate {
 func (uc *UserCreate) SetNillableDob(s *string) *UserCreate {
 	if s != nil {
 		uc.SetDob(*s)
+	}
+	return uc
+}
+
+// SetRole sets the "role" field.
+func (uc *UserCreate) SetRole(u user.Role) *UserCreate {
+	uc.mutation.SetRole(u)
+	return uc
+}
+
+// SetNillableRole sets the "role" field if the given value is not nil.
+func (uc *UserCreate) SetNillableRole(u *user.Role) *UserCreate {
+	if u != nil {
+		uc.SetRole(*u)
 	}
 	return uc
 }
@@ -276,6 +291,21 @@ func (uc *UserCreate) AddFollowing(u ...*User) *UserCreate {
 	return uc.AddFollowingIDs(ids...)
 }
 
+// AddOrderIDs adds the "orders" edge to the Order entity by IDs.
+func (uc *UserCreate) AddOrderIDs(ids ...string) *UserCreate {
+	uc.mutation.AddOrderIDs(ids...)
+	return uc
+}
+
+// AddOrders adds the "orders" edges to the Order entity.
+func (uc *UserCreate) AddOrders(o ...*Order) *UserCreate {
+	ids := make([]string, len(o))
+	for i := range o {
+		ids[i] = o[i].ID
+	}
+	return uc.AddOrderIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uc *UserCreate) Mutation() *UserMutation {
 	return uc.mutation
@@ -319,6 +349,10 @@ func (uc *UserCreate) defaults() {
 		v := user.DefaultEmailVerified
 		uc.mutation.SetEmailVerified(v)
 	}
+	if _, ok := uc.mutation.Role(); !ok {
+		v := user.DefaultRole
+		uc.mutation.SetRole(v)
+	}
 	if _, ok := uc.mutation.CreatedAt(); !ok {
 		v := user.DefaultCreatedAt()
 		uc.mutation.SetCreatedAt(v)
@@ -349,6 +383,14 @@ func (uc *UserCreate) check() error {
 	}
 	if _, ok := uc.mutation.EmailVerified(); !ok {
 		return &ValidationError{Name: "email_verified", err: errors.New(`ent: missing required field "User.email_verified"`)}
+	}
+	if _, ok := uc.mutation.Role(); !ok {
+		return &ValidationError{Name: "role", err: errors.New(`ent: missing required field "User.role"`)}
+	}
+	if v, ok := uc.mutation.Role(); ok {
+		if err := user.RoleValidator(v); err != nil {
+			return &ValidationError{Name: "role", err: fmt.Errorf(`ent: validator failed for field "User.role": %w`, err)}
+		}
 	}
 	if _, ok := uc.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "User.created_at"`)}
@@ -408,9 +450,9 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 		_spec.SetField(user.FieldProfileImageURL, field.TypeString, value)
 		_node.ProfileImageURL = value
 	}
-	if value, ok := uc.mutation.StripeCustomerID(); ok {
-		_spec.SetField(user.FieldStripeCustomerID, field.TypeString, value)
-		_node.StripeCustomerID = value
+	if value, ok := uc.mutation.StripeAccountID(); ok {
+		_spec.SetField(user.FieldStripeAccountID, field.TypeString, value)
+		_node.StripeAccountID = value
 	}
 	if value, ok := uc.mutation.Password(); ok {
 		_spec.SetField(user.FieldPassword, field.TypeString, value)
@@ -435,6 +477,10 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	if value, ok := uc.mutation.Dob(); ok {
 		_spec.SetField(user.FieldDob, field.TypeString, value)
 		_node.Dob = &value
+	}
+	if value, ok := uc.mutation.Role(); ok {
+		_spec.SetField(user.FieldRole, field.TypeEnum, value)
+		_node.Role = value
 	}
 	if value, ok := uc.mutation.CreatedAt(); ok {
 		_spec.SetField(user.FieldCreatedAt, field.TypeTime, value)
@@ -533,6 +579,22 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := uc.mutation.OrdersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OrdersTable,
+			Columns: []string{user.OrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

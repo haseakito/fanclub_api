@@ -96,7 +96,7 @@ func MuxPlaybackID(v string) predicate.Post {
 }
 
 // Price applies equality check predicate on the "price" field. It's identical to PriceEQ.
-func Price(v int) predicate.Post {
+func Price(v int64) predicate.Post {
 	return predicate.Post(sql.FieldEQ(FieldPrice, v))
 }
 
@@ -561,42 +561,42 @@ func MuxPlaybackIDContainsFold(v string) predicate.Post {
 }
 
 // PriceEQ applies the EQ predicate on the "price" field.
-func PriceEQ(v int) predicate.Post {
+func PriceEQ(v int64) predicate.Post {
 	return predicate.Post(sql.FieldEQ(FieldPrice, v))
 }
 
 // PriceNEQ applies the NEQ predicate on the "price" field.
-func PriceNEQ(v int) predicate.Post {
+func PriceNEQ(v int64) predicate.Post {
 	return predicate.Post(sql.FieldNEQ(FieldPrice, v))
 }
 
 // PriceIn applies the In predicate on the "price" field.
-func PriceIn(vs ...int) predicate.Post {
+func PriceIn(vs ...int64) predicate.Post {
 	return predicate.Post(sql.FieldIn(FieldPrice, vs...))
 }
 
 // PriceNotIn applies the NotIn predicate on the "price" field.
-func PriceNotIn(vs ...int) predicate.Post {
+func PriceNotIn(vs ...int64) predicate.Post {
 	return predicate.Post(sql.FieldNotIn(FieldPrice, vs...))
 }
 
 // PriceGT applies the GT predicate on the "price" field.
-func PriceGT(v int) predicate.Post {
+func PriceGT(v int64) predicate.Post {
 	return predicate.Post(sql.FieldGT(FieldPrice, v))
 }
 
 // PriceGTE applies the GTE predicate on the "price" field.
-func PriceGTE(v int) predicate.Post {
+func PriceGTE(v int64) predicate.Post {
 	return predicate.Post(sql.FieldGTE(FieldPrice, v))
 }
 
 // PriceLT applies the LT predicate on the "price" field.
-func PriceLT(v int) predicate.Post {
+func PriceLT(v int64) predicate.Post {
 	return predicate.Post(sql.FieldLT(FieldPrice, v))
 }
 
 // PriceLTE applies the LTE predicate on the "price" field.
-func PriceLTE(v int) predicate.Post {
+func PriceLTE(v int64) predicate.Post {
 	return predicate.Post(sql.FieldLTE(FieldPrice, v))
 }
 
@@ -794,6 +794,29 @@ func HasCategories() predicate.Post {
 func HasCategoriesWith(preds ...predicate.Category) predicate.Post {
 	return predicate.Post(func(s *sql.Selector) {
 		step := newCategoriesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasOrders applies the HasEdge predicate on the "orders" edge.
+func HasOrders() predicate.Post {
+	return predicate.Post(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, OrdersTable, OrdersColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasOrdersWith applies the HasEdge predicate on the "orders" edge with a given conditions (other predicates).
+func HasOrdersWith(preds ...predicate.Order) predicate.Post {
+	return predicate.Post(func(s *sql.Selector) {
+		step := newOrdersStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

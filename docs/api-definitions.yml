@@ -966,6 +966,9 @@ paths:
                   userLiked:
                     type: boolean
                     description: A boolean flag indicating whether the current user has liked the post.
+                  userPurchased:
+                    type: boolean
+                    description: A boolean flag indicating whether the current user has purchased the post.
         "404":
           description: Post not found.
           content:
@@ -1263,6 +1266,60 @@ paths:
         "500":
           description: Failed to delete category.
 
+  /webhooks:
+    post:
+      summary: Handle incoming Stripe webhook events
+      tags:
+        - webhook
+      description: Receives webhook requests from Stripe to process various events such as account updates, payment completions, and failures. It updates user roles and order statuses accordingly.
+      requestBody:
+        description: Webhook payload sent by Stripe
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  description: The ID of the Stripe event.
+                type:
+                  type: string
+                  description: Type of event, e.g., `account.updated`, `payment_intent.succeeded`.
+                data:
+                  type: object
+                  properties:
+                    object:
+                      type: object
+                      description: Contains the detailed information of the event.
+                    raw:
+                      type: string
+                      description: Raw JSON string of the object for direct parsing.
+
+      responses:
+        "200":
+          description: Profile picture uploaded successfully, no content to return.
+        "400":
+          description: Bad request, such as invalid JSON in the request body.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Invalid request: unable to read or parse request body."
+        "500":
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Failed to update user role."
+
 components:
   securitySchemes:
     BearerAuth:
@@ -1276,50 +1333,80 @@ components:
       properties:
         id:
           type: string
-          description: The unique identifier of the user.
+          description: "The unique identifier of the user."
+          example: user-clvwcht6m002y6aubd4cy9nhn
+          readOnly: true
         name:
           type: string
-          description: The name of the user.
+          description: "The name of the user."
+          example: Michael Jackson
         username:
           type: string
-          description: The username of the user, automatically assigned a CUID if not provided.
+          description: "The username of the user, automatically assigned a CUID if not provided."
+          example: "johndoe2024"
         profile_image_url:
           type: string
           nullable: true
-          description: Optional URL to the user's profile image.
-        stripe_customer_id:
+          description: "Optional URL to the user's profile image."
+        stripe_account_id:
           type: string
           nullable: true
-          description: Optional Stripe customer ID for the user.
+          description: "Optional Stripe customer ID for the user."
+          example: acct_1Nv0FGQ9RKHgCVdK
         url:
           type: string
           nullable: true
-          description: Optional URL associated with the user.
+          example: https://www.example.com
+          description: "Optional URL associated with the user."
         email:
           type: string
-          description: The user's email address.
+          description: "The user's email address."
+          example: "jackson@example.com"
         email_verified:
           type: boolean
           default: false
-          description: Flag indicating whether the user's email address has been verified.
+          description: "Flag indicating whether the user's email address has been verified."
         bio:
           type: string
           nullable: true
-          description: A brief biography of the user.
+          description: "A brief biography of the user."
+          example: Explorer of virtual vistas and real-world mountains alike, I spend my days weaving through codes and nights under stars. An ardent lover of coffee and conversations, I believe every cat has a secret, and every book hides a universe. When not in front of a screen, you'll find me sketching out my next big adventure or lost in the melodies of forgotten songs. Dreamer, doer, and occasional philosopher, chasing light, capturing moments, and coding dreams into reality
         dob:
           type: string
           nullable: true
-          description: Date of birth of the user.
+          description: "Date of birth of the user."
+        role:
+          type: string
+          enum: [fan, creator, admin]
+          description: "The role of the user within the system."
+          default: fan
         created_at:
           type: string
           format: date-time
           default: "Current Timestamp"
-          description: Timestamp when the user account was created.
+          description: "Timestamp when the user account was created."
         updated_at:
           type: string
           format: date-time
           default: "Current Timestamp"
-          description: Timestamp when the user account was last updated, automatically updated to current timestamp on modification.
+          description: "Timestamp when the user account was last updated, automatically updated to current timestamp on modification."
+
+    VerificationToken:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          example: "jackson@example.com"
+          description: The email address associated with the verification token. This field must be unique.
+        verification_code:
+          type: string
+          example: "839122"
+          description: The unique verification code associated with the email address.
+        expires_at:
+          type: string
+          format: date-time
+          description: The timestamp when the verification token expires.
 
     Post:
       type: object
@@ -1332,6 +1419,8 @@ components:
         id:
           type: string
           description: "Unique identifier for the post."
+          example: post-clvwcht6m002y6aubd4cy9nhn
+          readOnly: true
         title:
           type: string
           description: "Title of the post."
@@ -1382,10 +1471,43 @@ components:
         id:
           type: string
           description: "Unique identifier for the category, immutable."
-          maxLength: 25
+          example: tag-clvwcht6m002y6aubd4cy9nhn
+          readOnly: true
         name:
           type: string
           description: "Name of the category, must be unique and not empty."
+        created_at:
+          type: string
+          format: date-time
+          description: "The date and time when the category was created. Defaults to the current date and time."
+        updated_at:
+          type: string
+          format: date-time
+          description: "The date and time when the category was last updated. Automatically updates to the current date and time when modified."
+
+    Order:
+      type: object
+      required:
+        - id
+        - amount
+        - status
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: "Unique identifier for the order."
+          example: order-clvwcht6m002y6aubd4cy9nhn
+          readOnly: true
+        amount:
+          type: string
+          format: int
+          description: The total amount of the order in cents to avoid floating point errors.
+        status:
+          type: string
+          enum: [pending, completed, processing, canceled]
+          default: pending
+          description: The current status of the order.
         created_at:
           type: string
           format: date-time

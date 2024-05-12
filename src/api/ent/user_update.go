@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/hackgame-org/fanclub_api/api/ent/like"
+	"github.com/hackgame-org/fanclub_api/api/ent/order"
 	"github.com/hackgame-org/fanclub_api/api/ent/post"
 	"github.com/hackgame-org/fanclub_api/api/ent/predicate"
 	"github.com/hackgame-org/fanclub_api/api/ent/subscription"
@@ -80,23 +81,23 @@ func (uu *UserUpdate) ClearProfileImageURL() *UserUpdate {
 	return uu
 }
 
-// SetStripeCustomerID sets the "stripe_customer_id" field.
-func (uu *UserUpdate) SetStripeCustomerID(s string) *UserUpdate {
-	uu.mutation.SetStripeCustomerID(s)
+// SetStripeAccountID sets the "stripe_account_id" field.
+func (uu *UserUpdate) SetStripeAccountID(s string) *UserUpdate {
+	uu.mutation.SetStripeAccountID(s)
 	return uu
 }
 
-// SetNillableStripeCustomerID sets the "stripe_customer_id" field if the given value is not nil.
-func (uu *UserUpdate) SetNillableStripeCustomerID(s *string) *UserUpdate {
+// SetNillableStripeAccountID sets the "stripe_account_id" field if the given value is not nil.
+func (uu *UserUpdate) SetNillableStripeAccountID(s *string) *UserUpdate {
 	if s != nil {
-		uu.SetStripeCustomerID(*s)
+		uu.SetStripeAccountID(*s)
 	}
 	return uu
 }
 
-// ClearStripeCustomerID clears the value of the "stripe_customer_id" field.
-func (uu *UserUpdate) ClearStripeCustomerID() *UserUpdate {
-	uu.mutation.ClearStripeCustomerID()
+// ClearStripeAccountID clears the value of the "stripe_account_id" field.
+func (uu *UserUpdate) ClearStripeAccountID() *UserUpdate {
+	uu.mutation.ClearStripeAccountID()
 	return uu
 }
 
@@ -199,6 +200,20 @@ func (uu *UserUpdate) SetNillableDob(s *string) *UserUpdate {
 // ClearDob clears the value of the "dob" field.
 func (uu *UserUpdate) ClearDob() *UserUpdate {
 	uu.mutation.ClearDob()
+	return uu
+}
+
+// SetRole sets the "role" field.
+func (uu *UserUpdate) SetRole(u user.Role) *UserUpdate {
+	uu.mutation.SetRole(u)
+	return uu
+}
+
+// SetNillableRole sets the "role" field if the given value is not nil.
+func (uu *UserUpdate) SetNillableRole(u *user.Role) *UserUpdate {
+	if u != nil {
+		uu.SetRole(*u)
+	}
 	return uu
 }
 
@@ -314,6 +329,21 @@ func (uu *UserUpdate) AddFollowing(u ...*User) *UserUpdate {
 		ids[i] = u[i].ID
 	}
 	return uu.AddFollowingIDs(ids...)
+}
+
+// AddOrderIDs adds the "orders" edge to the Order entity by IDs.
+func (uu *UserUpdate) AddOrderIDs(ids ...string) *UserUpdate {
+	uu.mutation.AddOrderIDs(ids...)
+	return uu
+}
+
+// AddOrders adds the "orders" edges to the Order entity.
+func (uu *UserUpdate) AddOrders(o ...*Order) *UserUpdate {
+	ids := make([]string, len(o))
+	for i := range o {
+		ids[i] = o[i].ID
+	}
+	return uu.AddOrderIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -432,6 +462,27 @@ func (uu *UserUpdate) RemoveFollowing(u ...*User) *UserUpdate {
 	return uu.RemoveFollowingIDs(ids...)
 }
 
+// ClearOrders clears all "orders" edges to the Order entity.
+func (uu *UserUpdate) ClearOrders() *UserUpdate {
+	uu.mutation.ClearOrders()
+	return uu
+}
+
+// RemoveOrderIDs removes the "orders" edge to Order entities by IDs.
+func (uu *UserUpdate) RemoveOrderIDs(ids ...string) *UserUpdate {
+	uu.mutation.RemoveOrderIDs(ids...)
+	return uu
+}
+
+// RemoveOrders removes "orders" edges to Order entities.
+func (uu *UserUpdate) RemoveOrders(o ...*Order) *UserUpdate {
+	ids := make([]string, len(o))
+	for i := range o {
+		ids[i] = o[i].ID
+	}
+	return uu.RemoveOrderIDs(ids...)
+}
+
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (uu *UserUpdate) Save(ctx context.Context) (int, error) {
 	uu.defaults()
@@ -468,7 +519,20 @@ func (uu *UserUpdate) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (uu *UserUpdate) check() error {
+	if v, ok := uu.mutation.Role(); ok {
+		if err := user.RoleValidator(v); err != nil {
+			return &ValidationError{Name: "role", err: fmt.Errorf(`ent: validator failed for field "User.role": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
+	if err := uu.check(); err != nil {
+		return n, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(user.Table, user.Columns, sqlgraph.NewFieldSpec(user.FieldID, field.TypeString))
 	if ps := uu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -489,11 +553,11 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if uu.mutation.ProfileImageURLCleared() {
 		_spec.ClearField(user.FieldProfileImageURL, field.TypeString)
 	}
-	if value, ok := uu.mutation.StripeCustomerID(); ok {
-		_spec.SetField(user.FieldStripeCustomerID, field.TypeString, value)
+	if value, ok := uu.mutation.StripeAccountID(); ok {
+		_spec.SetField(user.FieldStripeAccountID, field.TypeString, value)
 	}
-	if uu.mutation.StripeCustomerIDCleared() {
-		_spec.ClearField(user.FieldStripeCustomerID, field.TypeString)
+	if uu.mutation.StripeAccountIDCleared() {
+		_spec.ClearField(user.FieldStripeAccountID, field.TypeString)
 	}
 	if value, ok := uu.mutation.Password(); ok {
 		_spec.SetField(user.FieldPassword, field.TypeString, value)
@@ -521,6 +585,9 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if uu.mutation.DobCleared() {
 		_spec.ClearField(user.FieldDob, field.TypeString)
+	}
+	if value, ok := uu.mutation.Role(); ok {
+		_spec.SetField(user.FieldRole, field.TypeEnum, value)
 	}
 	if value, ok := uu.mutation.CreatedAt(); ok {
 		_spec.SetField(user.FieldCreatedAt, field.TypeTime, value)
@@ -782,6 +849,51 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if uu.mutation.OrdersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OrdersTable,
+			Columns: []string{user.OrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.RemovedOrdersIDs(); len(nodes) > 0 && !uu.mutation.OrdersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OrdersTable,
+			Columns: []string{user.OrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.OrdersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OrdersTable,
+			Columns: []string{user.OrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, uu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{user.Label}
@@ -850,23 +962,23 @@ func (uuo *UserUpdateOne) ClearProfileImageURL() *UserUpdateOne {
 	return uuo
 }
 
-// SetStripeCustomerID sets the "stripe_customer_id" field.
-func (uuo *UserUpdateOne) SetStripeCustomerID(s string) *UserUpdateOne {
-	uuo.mutation.SetStripeCustomerID(s)
+// SetStripeAccountID sets the "stripe_account_id" field.
+func (uuo *UserUpdateOne) SetStripeAccountID(s string) *UserUpdateOne {
+	uuo.mutation.SetStripeAccountID(s)
 	return uuo
 }
 
-// SetNillableStripeCustomerID sets the "stripe_customer_id" field if the given value is not nil.
-func (uuo *UserUpdateOne) SetNillableStripeCustomerID(s *string) *UserUpdateOne {
+// SetNillableStripeAccountID sets the "stripe_account_id" field if the given value is not nil.
+func (uuo *UserUpdateOne) SetNillableStripeAccountID(s *string) *UserUpdateOne {
 	if s != nil {
-		uuo.SetStripeCustomerID(*s)
+		uuo.SetStripeAccountID(*s)
 	}
 	return uuo
 }
 
-// ClearStripeCustomerID clears the value of the "stripe_customer_id" field.
-func (uuo *UserUpdateOne) ClearStripeCustomerID() *UserUpdateOne {
-	uuo.mutation.ClearStripeCustomerID()
+// ClearStripeAccountID clears the value of the "stripe_account_id" field.
+func (uuo *UserUpdateOne) ClearStripeAccountID() *UserUpdateOne {
+	uuo.mutation.ClearStripeAccountID()
 	return uuo
 }
 
@@ -969,6 +1081,20 @@ func (uuo *UserUpdateOne) SetNillableDob(s *string) *UserUpdateOne {
 // ClearDob clears the value of the "dob" field.
 func (uuo *UserUpdateOne) ClearDob() *UserUpdateOne {
 	uuo.mutation.ClearDob()
+	return uuo
+}
+
+// SetRole sets the "role" field.
+func (uuo *UserUpdateOne) SetRole(u user.Role) *UserUpdateOne {
+	uuo.mutation.SetRole(u)
+	return uuo
+}
+
+// SetNillableRole sets the "role" field if the given value is not nil.
+func (uuo *UserUpdateOne) SetNillableRole(u *user.Role) *UserUpdateOne {
+	if u != nil {
+		uuo.SetRole(*u)
+	}
 	return uuo
 }
 
@@ -1084,6 +1210,21 @@ func (uuo *UserUpdateOne) AddFollowing(u ...*User) *UserUpdateOne {
 		ids[i] = u[i].ID
 	}
 	return uuo.AddFollowingIDs(ids...)
+}
+
+// AddOrderIDs adds the "orders" edge to the Order entity by IDs.
+func (uuo *UserUpdateOne) AddOrderIDs(ids ...string) *UserUpdateOne {
+	uuo.mutation.AddOrderIDs(ids...)
+	return uuo
+}
+
+// AddOrders adds the "orders" edges to the Order entity.
+func (uuo *UserUpdateOne) AddOrders(o ...*Order) *UserUpdateOne {
+	ids := make([]string, len(o))
+	for i := range o {
+		ids[i] = o[i].ID
+	}
+	return uuo.AddOrderIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -1202,6 +1343,27 @@ func (uuo *UserUpdateOne) RemoveFollowing(u ...*User) *UserUpdateOne {
 	return uuo.RemoveFollowingIDs(ids...)
 }
 
+// ClearOrders clears all "orders" edges to the Order entity.
+func (uuo *UserUpdateOne) ClearOrders() *UserUpdateOne {
+	uuo.mutation.ClearOrders()
+	return uuo
+}
+
+// RemoveOrderIDs removes the "orders" edge to Order entities by IDs.
+func (uuo *UserUpdateOne) RemoveOrderIDs(ids ...string) *UserUpdateOne {
+	uuo.mutation.RemoveOrderIDs(ids...)
+	return uuo
+}
+
+// RemoveOrders removes "orders" edges to Order entities.
+func (uuo *UserUpdateOne) RemoveOrders(o ...*Order) *UserUpdateOne {
+	ids := make([]string, len(o))
+	for i := range o {
+		ids[i] = o[i].ID
+	}
+	return uuo.RemoveOrderIDs(ids...)
+}
+
 // Where appends a list predicates to the UserUpdate builder.
 func (uuo *UserUpdateOne) Where(ps ...predicate.User) *UserUpdateOne {
 	uuo.mutation.Where(ps...)
@@ -1251,7 +1413,20 @@ func (uuo *UserUpdateOne) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (uuo *UserUpdateOne) check() error {
+	if v, ok := uuo.mutation.Role(); ok {
+		if err := user.RoleValidator(v); err != nil {
+			return &ValidationError{Name: "role", err: fmt.Errorf(`ent: validator failed for field "User.role": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
+	if err := uuo.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(user.Table, user.Columns, sqlgraph.NewFieldSpec(user.FieldID, field.TypeString))
 	id, ok := uuo.mutation.ID()
 	if !ok {
@@ -1289,11 +1464,11 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 	if uuo.mutation.ProfileImageURLCleared() {
 		_spec.ClearField(user.FieldProfileImageURL, field.TypeString)
 	}
-	if value, ok := uuo.mutation.StripeCustomerID(); ok {
-		_spec.SetField(user.FieldStripeCustomerID, field.TypeString, value)
+	if value, ok := uuo.mutation.StripeAccountID(); ok {
+		_spec.SetField(user.FieldStripeAccountID, field.TypeString, value)
 	}
-	if uuo.mutation.StripeCustomerIDCleared() {
-		_spec.ClearField(user.FieldStripeCustomerID, field.TypeString)
+	if uuo.mutation.StripeAccountIDCleared() {
+		_spec.ClearField(user.FieldStripeAccountID, field.TypeString)
 	}
 	if value, ok := uuo.mutation.Password(); ok {
 		_spec.SetField(user.FieldPassword, field.TypeString, value)
@@ -1321,6 +1496,9 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 	}
 	if uuo.mutation.DobCleared() {
 		_spec.ClearField(user.FieldDob, field.TypeString)
+	}
+	if value, ok := uuo.mutation.Role(); ok {
+		_spec.SetField(user.FieldRole, field.TypeEnum, value)
 	}
 	if value, ok := uuo.mutation.CreatedAt(); ok {
 		_spec.SetField(user.FieldCreatedAt, field.TypeTime, value)
@@ -1575,6 +1753,51 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if uuo.mutation.OrdersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OrdersTable,
+			Columns: []string{user.OrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.RemovedOrdersIDs(); len(nodes) > 0 && !uuo.mutation.OrdersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OrdersTable,
+			Columns: []string{user.OrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.OrdersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OrdersTable,
+			Columns: []string{user.OrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

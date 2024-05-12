@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/hackgame-org/fanclub_api/api/ent/category"
 	"github.com/hackgame-org/fanclub_api/api/ent/like"
+	"github.com/hackgame-org/fanclub_api/api/ent/order"
 	"github.com/hackgame-org/fanclub_api/api/ent/post"
 	"github.com/hackgame-org/fanclub_api/api/ent/subscription"
 	"github.com/hackgame-org/fanclub_api/api/ent/user"
@@ -80,6 +81,7 @@ func checkColumn(table, column string) error {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
 			category.Table:          category.ValidColumn,
 			like.Table:              like.ValidColumn,
+			order.Table:             order.ValidColumn,
 			post.Table:              post.ValidColumn,
 			subscription.Table:      subscription.ValidColumn,
 			user.Table:              user.ValidColumn,

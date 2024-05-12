@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/hackgame-org/fanclub_api/api/ent/category"
 	"github.com/hackgame-org/fanclub_api/api/ent/like"
+	"github.com/hackgame-org/fanclub_api/api/ent/order"
 	"github.com/hackgame-org/fanclub_api/api/ent/post"
 	"github.com/hackgame-org/fanclub_api/api/ent/predicate"
 	"github.com/hackgame-org/fanclub_api/api/ent/subscription"
@@ -147,14 +148,14 @@ func (pu *PostUpdate) ClearMuxPlaybackID() *PostUpdate {
 }
 
 // SetPrice sets the "price" field.
-func (pu *PostUpdate) SetPrice(i int) *PostUpdate {
+func (pu *PostUpdate) SetPrice(i int64) *PostUpdate {
 	pu.mutation.ResetPrice()
 	pu.mutation.SetPrice(i)
 	return pu
 }
 
 // SetNillablePrice sets the "price" field if the given value is not nil.
-func (pu *PostUpdate) SetNillablePrice(i *int) *PostUpdate {
+func (pu *PostUpdate) SetNillablePrice(i *int64) *PostUpdate {
 	if i != nil {
 		pu.SetPrice(*i)
 	}
@@ -162,7 +163,7 @@ func (pu *PostUpdate) SetNillablePrice(i *int) *PostUpdate {
 }
 
 // AddPrice adds i to the "price" field.
-func (pu *PostUpdate) AddPrice(i int) *PostUpdate {
+func (pu *PostUpdate) AddPrice(i int64) *PostUpdate {
 	pu.mutation.AddPrice(i)
 	return pu
 }
@@ -285,6 +286,21 @@ func (pu *PostUpdate) AddCategories(c ...*Category) *PostUpdate {
 	return pu.AddCategoryIDs(ids...)
 }
 
+// AddOrderIDs adds the "orders" edge to the Order entity by IDs.
+func (pu *PostUpdate) AddOrderIDs(ids ...string) *PostUpdate {
+	pu.mutation.AddOrderIDs(ids...)
+	return pu
+}
+
+// AddOrders adds the "orders" edges to the Order entity.
+func (pu *PostUpdate) AddOrders(o ...*Order) *PostUpdate {
+	ids := make([]string, len(o))
+	for i := range o {
+		ids[i] = o[i].ID
+	}
+	return pu.AddOrderIDs(ids...)
+}
+
 // Mutation returns the PostMutation object of the builder.
 func (pu *PostUpdate) Mutation() *PostMutation {
 	return pu.mutation
@@ -357,6 +373,27 @@ func (pu *PostUpdate) RemoveCategories(c ...*Category) *PostUpdate {
 		ids[i] = c[i].ID
 	}
 	return pu.RemoveCategoryIDs(ids...)
+}
+
+// ClearOrders clears all "orders" edges to the Order entity.
+func (pu *PostUpdate) ClearOrders() *PostUpdate {
+	pu.mutation.ClearOrders()
+	return pu
+}
+
+// RemoveOrderIDs removes the "orders" edge to Order entities by IDs.
+func (pu *PostUpdate) RemoveOrderIDs(ids ...string) *PostUpdate {
+	pu.mutation.RemoveOrderIDs(ids...)
+	return pu
+}
+
+// RemoveOrders removes "orders" edges to Order entities.
+func (pu *PostUpdate) RemoveOrders(o ...*Order) *PostUpdate {
+	ids := make([]string, len(o))
+	for i := range o {
+		ids[i] = o[i].ID
+	}
+	return pu.RemoveOrderIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -438,13 +475,13 @@ func (pu *PostUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		_spec.ClearField(post.FieldMuxPlaybackID, field.TypeString)
 	}
 	if value, ok := pu.mutation.Price(); ok {
-		_spec.SetField(post.FieldPrice, field.TypeInt, value)
+		_spec.SetField(post.FieldPrice, field.TypeInt64, value)
 	}
 	if value, ok := pu.mutation.AddedPrice(); ok {
-		_spec.AddField(post.FieldPrice, field.TypeInt, value)
+		_spec.AddField(post.FieldPrice, field.TypeInt64, value)
 	}
 	if pu.mutation.PriceCleared() {
-		_spec.ClearField(post.FieldPrice, field.TypeInt)
+		_spec.ClearField(post.FieldPrice, field.TypeInt64)
 	}
 	if value, ok := pu.mutation.IsFeatured(); ok {
 		_spec.SetField(post.FieldIsFeatured, field.TypeBool, value)
@@ -622,6 +659,51 @@ func (pu *PostUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if pu.mutation.OrdersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   post.OrdersTable,
+			Columns: []string{post.OrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.RemovedOrdersIDs(); len(nodes) > 0 && !pu.mutation.OrdersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   post.OrdersTable,
+			Columns: []string{post.OrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.OrdersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   post.OrdersTable,
+			Columns: []string{post.OrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, pu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{post.Label}
@@ -757,14 +839,14 @@ func (puo *PostUpdateOne) ClearMuxPlaybackID() *PostUpdateOne {
 }
 
 // SetPrice sets the "price" field.
-func (puo *PostUpdateOne) SetPrice(i int) *PostUpdateOne {
+func (puo *PostUpdateOne) SetPrice(i int64) *PostUpdateOne {
 	puo.mutation.ResetPrice()
 	puo.mutation.SetPrice(i)
 	return puo
 }
 
 // SetNillablePrice sets the "price" field if the given value is not nil.
-func (puo *PostUpdateOne) SetNillablePrice(i *int) *PostUpdateOne {
+func (puo *PostUpdateOne) SetNillablePrice(i *int64) *PostUpdateOne {
 	if i != nil {
 		puo.SetPrice(*i)
 	}
@@ -772,7 +854,7 @@ func (puo *PostUpdateOne) SetNillablePrice(i *int) *PostUpdateOne {
 }
 
 // AddPrice adds i to the "price" field.
-func (puo *PostUpdateOne) AddPrice(i int) *PostUpdateOne {
+func (puo *PostUpdateOne) AddPrice(i int64) *PostUpdateOne {
 	puo.mutation.AddPrice(i)
 	return puo
 }
@@ -895,6 +977,21 @@ func (puo *PostUpdateOne) AddCategories(c ...*Category) *PostUpdateOne {
 	return puo.AddCategoryIDs(ids...)
 }
 
+// AddOrderIDs adds the "orders" edge to the Order entity by IDs.
+func (puo *PostUpdateOne) AddOrderIDs(ids ...string) *PostUpdateOne {
+	puo.mutation.AddOrderIDs(ids...)
+	return puo
+}
+
+// AddOrders adds the "orders" edges to the Order entity.
+func (puo *PostUpdateOne) AddOrders(o ...*Order) *PostUpdateOne {
+	ids := make([]string, len(o))
+	for i := range o {
+		ids[i] = o[i].ID
+	}
+	return puo.AddOrderIDs(ids...)
+}
+
 // Mutation returns the PostMutation object of the builder.
 func (puo *PostUpdateOne) Mutation() *PostMutation {
 	return puo.mutation
@@ -967,6 +1064,27 @@ func (puo *PostUpdateOne) RemoveCategories(c ...*Category) *PostUpdateOne {
 		ids[i] = c[i].ID
 	}
 	return puo.RemoveCategoryIDs(ids...)
+}
+
+// ClearOrders clears all "orders" edges to the Order entity.
+func (puo *PostUpdateOne) ClearOrders() *PostUpdateOne {
+	puo.mutation.ClearOrders()
+	return puo
+}
+
+// RemoveOrderIDs removes the "orders" edge to Order entities by IDs.
+func (puo *PostUpdateOne) RemoveOrderIDs(ids ...string) *PostUpdateOne {
+	puo.mutation.RemoveOrderIDs(ids...)
+	return puo
+}
+
+// RemoveOrders removes "orders" edges to Order entities.
+func (puo *PostUpdateOne) RemoveOrders(o ...*Order) *PostUpdateOne {
+	ids := make([]string, len(o))
+	for i := range o {
+		ids[i] = o[i].ID
+	}
+	return puo.RemoveOrderIDs(ids...)
 }
 
 // Where appends a list predicates to the PostUpdate builder.
@@ -1078,13 +1196,13 @@ func (puo *PostUpdateOne) sqlSave(ctx context.Context) (_node *Post, err error) 
 		_spec.ClearField(post.FieldMuxPlaybackID, field.TypeString)
 	}
 	if value, ok := puo.mutation.Price(); ok {
-		_spec.SetField(post.FieldPrice, field.TypeInt, value)
+		_spec.SetField(post.FieldPrice, field.TypeInt64, value)
 	}
 	if value, ok := puo.mutation.AddedPrice(); ok {
-		_spec.AddField(post.FieldPrice, field.TypeInt, value)
+		_spec.AddField(post.FieldPrice, field.TypeInt64, value)
 	}
 	if puo.mutation.PriceCleared() {
-		_spec.ClearField(post.FieldPrice, field.TypeInt)
+		_spec.ClearField(post.FieldPrice, field.TypeInt64)
 	}
 	if value, ok := puo.mutation.IsFeatured(); ok {
 		_spec.SetField(post.FieldIsFeatured, field.TypeBool, value)
@@ -1255,6 +1373,51 @@ func (puo *PostUpdateOne) sqlSave(ctx context.Context) (_node *Post, err error) 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(category.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if puo.mutation.OrdersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   post.OrdersTable,
+			Columns: []string{post.OrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.RemovedOrdersIDs(); len(nodes) > 0 && !puo.mutation.OrdersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   post.OrdersTable,
+			Columns: []string{post.OrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.OrdersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   post.OrdersTable,
+			Columns: []string{post.OrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

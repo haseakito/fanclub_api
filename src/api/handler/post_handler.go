@@ -9,6 +9,7 @@ import (
 
 	"github.com/hackgame-org/fanclub_api/api/ent"
 	"github.com/hackgame-org/fanclub_api/api/ent/like"
+	"github.com/hackgame-org/fanclub_api/api/ent/order"
 	"github.com/hackgame-org/fanclub_api/api/ent/post"
 	"github.com/hackgame-org/fanclub_api/api/ent/user"
 	"github.com/hackgame-org/fanclub_api/api/requests"
@@ -247,17 +248,32 @@ func (h PostHandler) GetPostByID(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to fetch the like" + err.Error()})
 	}
 
+	// Determine if the current user has purchased the post
+	userPurchased, err := h.db.Order.
+		Query().
+		Where(
+			order.HasUserWith(user.ID(userID)),
+			order.HasPostWith(post.ID(postID)),
+			order.StatusEQ(order.StatusCompleted),
+		).
+		Exist(c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to fetch the order" + err.Error()})
+	}
+
 	// Create the response object
 	res := struct {
-		Post      *ent.Post `json:"post"`
-		User      *ent.User `json:"user"`
-		LikeCount int       `json:"likes"`
-		UserLiked bool      `json:"userLiked"`
+		Post          *ent.Post `json:"post"`
+		User          *ent.User `json:"user"`
+		LikeCount     int       `json:"likes"`
+		UserLiked     bool      `json:"userLiked"`
+		UserPurchased bool      `json:"userPurchased"`
 	}{
-		Post:      postData,
-		User:      postData.Edges.User,
-		LikeCount: likeCount,
-		UserLiked: userLiked,
+		Post:          postData,
+		User:          postData.Edges.User,
+		LikeCount:     likeCount,
+		UserLiked:     userLiked,
+		UserPurchased: userPurchased,
 	}
 
 	return c.JSON(http.StatusOK, res)

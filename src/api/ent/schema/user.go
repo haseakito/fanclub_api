@@ -28,13 +28,16 @@ func (User) Fields() []ent.Field {
 		field.String("name"),
 		field.String("username").Default(cuid.New()),
 		field.String("profile_image_url").Optional(),
-		field.String("stripe_customer_id").Optional(),
+		field.String("stripe_account_id").Optional(),
 		field.String("password").Sensitive(),
 		field.String("url").Optional(),
 		field.String("email").Unique(),
 		field.Bool("email_verified").Default(false).Nillable(),
 		field.Text("bio").Optional(),
 		field.String("dob").Optional().Nillable(),
+		field.Enum("role").
+			Values("fan", "creator", "admin").
+			Default("fan"),
 		field.Time("created_at").Default(time.Now),
 		field.Time("updated_at").
 			Default(time.Now).
@@ -45,7 +48,7 @@ func (User) Fields() []ent.Field {
 // Edges of the User.
 func (User) Edges() []ent.Edge {
 	return []ent.Edge{
-		//
+		// Has-one relationship to a verification token
 		edge.To("verification_token", VerificationToken.Type).Unique().Annotations(entsql.OnDelete(entsql.Cascade)),
 
 		// Has-many relationship to post
@@ -59,5 +62,8 @@ func (User) Edges() []ent.Edge {
 
 		// Many-to-many relationship between followers and followings
 		edge.To("following", User.Type).From("followers"),
+
+		// Has-many relationship to order
+		edge.To("orders", Order.Type),
 	}
 }

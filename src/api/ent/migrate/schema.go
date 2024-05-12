@@ -48,6 +48,36 @@ var (
 			},
 		},
 	}
+	// OrdersColumns holds the columns for the "orders" table.
+	OrdersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true},
+		{Name: "amount", Type: field.TypeInt64},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "completed", "processing", "canceled"}, Default: "pending"},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "post_orders", Type: field.TypeString, Nullable: true},
+		{Name: "user_orders", Type: field.TypeString, Nullable: true},
+	}
+	// OrdersTable holds the schema information for the "orders" table.
+	OrdersTable = &schema.Table{
+		Name:       "orders",
+		Columns:    OrdersColumns,
+		PrimaryKey: []*schema.Column{OrdersColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "orders_posts_orders",
+				Columns:    []*schema.Column{OrdersColumns[5]},
+				RefColumns: []*schema.Column{PostsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "orders_users_orders",
+				Columns:    []*schema.Column{OrdersColumns[6]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
 	// PostsColumns holds the columns for the "posts" table.
 	PostsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true},
@@ -57,7 +87,7 @@ var (
 		{Name: "video_url", Type: field.TypeString, Nullable: true},
 		{Name: "mux_asset_id", Type: field.TypeString, Nullable: true},
 		{Name: "mux_playback_id", Type: field.TypeString, Nullable: true},
-		{Name: "price", Type: field.TypeInt, Nullable: true},
+		{Name: "price", Type: field.TypeInt64, Nullable: true},
 		{Name: "is_featured", Type: field.TypeBool, Default: false},
 		{Name: "status", Type: field.TypeBool, Default: false},
 		{Name: "created_at", Type: field.TypeTime},
@@ -108,15 +138,16 @@ var (
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true},
 		{Name: "name", Type: field.TypeString},
-		{Name: "username", Type: field.TypeString, Default: "clw1l1uu50000vx7cxln34zsj"},
+		{Name: "username", Type: field.TypeString, Default: "clw23kd6i00009y7cnpxqqq49"},
 		{Name: "profile_image_url", Type: field.TypeString, Nullable: true},
-		{Name: "stripe_customer_id", Type: field.TypeString, Nullable: true},
+		{Name: "stripe_account_id", Type: field.TypeString, Nullable: true},
 		{Name: "password", Type: field.TypeString},
 		{Name: "url", Type: field.TypeString, Nullable: true},
 		{Name: "email", Type: field.TypeString, Unique: true},
 		{Name: "email_verified", Type: field.TypeBool, Default: false},
 		{Name: "bio", Type: field.TypeString, Nullable: true, Size: 2147483647},
 		{Name: "dob", Type: field.TypeString, Nullable: true},
+		{Name: "role", Type: field.TypeEnum, Enums: []string{"fan", "creator", "admin"}, Default: "fan"},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 	}
@@ -227,6 +258,7 @@ var (
 	Tables = []*schema.Table{
 		CategoriesTable,
 		LikesTable,
+		OrdersTable,
 		PostsTable,
 		SubscriptionsTable,
 		UsersTable,
@@ -240,6 +272,8 @@ var (
 func init() {
 	LikesTable.ForeignKeys[0].RefTable = PostsTable
 	LikesTable.ForeignKeys[1].RefTable = UsersTable
+	OrdersTable.ForeignKeys[0].RefTable = PostsTable
+	OrdersTable.ForeignKeys[1].RefTable = UsersTable
 	PostsTable.ForeignKeys[0].RefTable = UsersTable
 	SubscriptionsTable.ForeignKeys[0].RefTable = UsersTable
 	VerificationTokensTable.ForeignKeys[0].RefTable = UsersTable
